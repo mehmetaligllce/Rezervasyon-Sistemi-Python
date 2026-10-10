@@ -1,6 +1,6 @@
 from datetime import datetime,timedelta
 import core.sabitler as sbt
-from core.yard_fonksiyonlar import ucret_hesapla,max_sure_hesapla
+from core.yard_fonksiyonlar import ucret_hesapla
 def rezervasyon_dogrula(baslangic_veri:dict ,komut:dict,rezervasyonlar:list[dict],saat:datetime)->str:
 
     kullanici = next((k for k in baslangic_veri["kullanicilar"] if k["id"]==komut["kullanici"]),None) 
@@ -79,10 +79,11 @@ def rezervasyon_dogrula(baslangic_veri:dict ,komut:dict,rezervasyonlar:list[dict
             if baslangic < r_bit + sinir and bitis +  sinir > r_bas:
                 return "ARDISIK_KULLANIM"
             
-    """ bakiye= kullanici["bakiye"]
-    ucret = ucret_hesapla(baslangic_veri,komut,saat)  
-    if  bakiye<ucret:
-        return "BAKIYE_YETERSIZ" """
+    bakiye= kullanici["bakiye"]
+    if komut.get("komut")!="fiyat":
+        ucret = ucret_hesapla(baslangic_veri,komut,rezervasyonlar,saat)  
+        if  bakiye<ucret:
+            return "BAKIYE_YETERSIZ"
     return "BASARILI"
 
 

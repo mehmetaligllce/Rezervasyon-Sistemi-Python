@@ -1,3 +1,4 @@
+from core.yard_fonksiyonlar import ucret_hesapla
 from datetime import datetime
 import json 
 import sys
@@ -47,12 +48,26 @@ def komut_yaz(komutlar:list,baslangic_json:dict,saat:datetime=None,rezervasyonla
         if k.get("JSON_HATALI"):
             sonuc_yaz({"no":idx,"durum":"RED","kod":"JSON_HATALI"})
         else:
-            if k.get("komut")=="rezervasyon" or k.get("komut")=="fiyat" :
+            if k.get("komut")=="rezervasyon" :
                 durum=rezervasyon_dogrula(baslangic_json,k,rezervasyonlar,saat)
                 if durum!="BASARILI":
                     sonuc_yaz({"no":idx,"komut":k.get("komut"),"durum":"RED","kod":durum})
                 else:
-                    sonuc_yaz({"no":idx,"komut":k.get("komut"),"durum":"TAMAM"})
+                    ucret = ucret_hesapla(baslangic_json, k, rezervasyonlar, saat)
+                    kullanici=next(t for t in baslangic_json["kullanicilar"] if t["id"]==k["kullanici"])
+                    kullanici["bakiye"]-=ucret
+                    rezervasyonlar.append({"id":f"r{len(rezervasyonlar)+1}","kullanici":k["kullanici"], "kaynak":k["kaynak"], "baslangic":k["baslangic"], "bitis":k["bitis"], "ucret":ucret, "durum": "ONAYLI"})
+                    sonuc_yaz({"no":idx,"komut":k.get("komut"),"durum":"TAMAM","rezervasyon_id":f"r{len(rezervasyonlar)}","ucret":ucret,"bakiye":kullanici["bakiye"]})
+
+
+            elif  k.get("komut")=="fiyat" :
+                durum=rezervasyon_dogrula(baslangic_json,k,rezervasyonlar,saat)
+                if durum!="BASARILI":
+                    sonuc_yaz({"no": idx, "komut": "fiyat", "durum": "RED", "kod": durum})
+                else:
+                    ucret = ucret_hesapla(baslangic_json, k, rezervasyonlar, saat)
+                    sonuc_yaz({"no": idx, "komut": "fiyat", "durum": "TAMAM", "ucret": ucret})
+            
             else:
                 sonuc_yaz({"no":idx,"komut":k.get("komut"),"durum":"TAMAM"})
             

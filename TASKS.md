@@ -14,6 +14,7 @@ Kurallar `AGENTS.md` Bölüm 7'dedir. Özet:
 
 V0.1 | 09/10 10:54 | Proje iskeleti kuruldu, dosya okuma/yazma (baslangic.json, komutlar.jsonl, JSON Lines çıktı), sabitler dosyası ve main.py şef yapısı bağlandı | değişen: json_io/dosya_okuma.py, core/sabitler.py, main.py, calistir.bat
 V0.2 | 10/10 10:31 | K10 doğrulama 1–12. kontrol yazıldı (BULUNAMADI'dan ARDISIK_KULLANIM'a, PDF sırasıyla). Rezervasyon döngüleri KESISME, HAZIRLIK_IHLALI ve ARDISIK_KULLANIM için ayrı ayrı çalışır. Örnekte 4, 5, 9, 10. komutlar beklenen hata kodunu verdi. 3. ve 6. komut sahte rezervasyonla elle denendi (ARDISIK_KULLANIM, HAZIRLIK_IHLALI doğru). Her komut için bir satır üretiliyor, geçerli talepte yalnızca no, komut, durum:TAMAM döner. 13. kontrol (BAKIYE_YETERSIZ) ve ücret V0.3'e bırakıldı | değişen: core/dogrulama.py, core/yard_fonksiyonlar.py, json_io/dosya_okuma.py, main.py
+V0.3 | 10/10 15:47 | K5 ücret hesaplama (15 dk dilimler, 2 saatlik bant doluluğu ve çarpanı, pik saat 10:00-16:00 ve enerji_yogun 1.5x katsayısı, yarım yukarı yuvarlama), 13. kontrol (BAKIYE_YETERSIZ), rezervasyon onayında id atama ve bakiye düşümü, fiyat sorgusu tamamlandı. Örnek senaryodaki 1-7, 9, 10. komutlar beklenen sonuçlarla birebir doğrulandı | değişen: core/yard_fonksiyonlar.py, core/dogrulama.py, json_io/dosya_okuma.py
 
 ---
 
