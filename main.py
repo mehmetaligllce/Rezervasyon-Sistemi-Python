@@ -3,5 +3,5 @@ import sys
 
 baslangic_json= baslangic_json_okuma(sys.argv[1])
 komutlar_json= komutlar_json_okuma(sys.argv[2])
-komut_yaz(komutlar_json)
+komut_yaz(komutlar_json,baslangic_json)
     
