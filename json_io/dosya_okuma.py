@@ -3,6 +3,7 @@ from datetime import datetime
 import json 
 import sys
 from core.dogrulama import rezervasyon_dogrula
+from core.durum import rezervasyon_durum
 
 
 def baslangic_json_okuma(yol:str)->dict:
@@ -67,6 +68,10 @@ def komut_yaz(komutlar:list,baslangic_json:dict,saat:datetime=None,rezervasyonla
                 else:
                     ucret = ucret_hesapla(baslangic_json, k, rezervasyonlar, saat)
                     sonuc_yaz({"no": idx, "komut": "fiyat", "durum": "TAMAM", "ucret": ucret})
+            elif k.get("komut") in ["giris","cikis","iptal"]:
+                durum=rezervasyon_durum(baslangic_json,k,rezervasyonlar,saat)
+                sonuc_yaz({"no":idx,"komut":k.get("komut"),**durum})
+                
             
             else:
                 sonuc_yaz({"no":idx,"komut":k.get("komut"),"durum":"TAMAM"})
