@@ -6,6 +6,7 @@ from core.dogrulama import rezervasyon_dogrula
 from core.durum import rezervasyon_durum
 from core.simule import saat_ilerlet
 from core.sorgu import sorgu_isle
+from core.paket import paket_isle
 def baslangic_json_okuma(yol:str)->dict:
     try:
         with open(yol,"r",encoding="utf8") as b:
@@ -44,6 +45,7 @@ def komut_yaz(komutlar:list,baslangic_json:dict,saat:datetime=None,rezervasyonla
         saat=datetime.fromisoformat(baslangic_json["saat"])
     if rezervasyonlar is None:
         rezervasyonlar=[]
+    paket_sayac=0
 
     for idx,k in enumerate(komutlar,1):
         if k.get("JSON_HATALI"):
@@ -82,6 +84,11 @@ def komut_yaz(komutlar:list,baslangic_json:dict,saat:datetime=None,rezervasyonla
             elif k.get("komut")=="sorgu":
                 sonuc=sorgu_isle(baslangic_json,k,rezervasyonlar,saat)
                 sonuc_yaz({"no":idx,"komut":"sorgu",**sonuc})
+            elif k.get("komut")=="paket": 
+                sonuc=paket_isle(baslangic_json,k,rezervasyonlar,saat,paket_sayac)
+                if sonuc["durum"]=="TAMAM":
+                    paket_sayac+=1
+                sonuc_yaz({"no":idx,"komut":"paket",**sonuc})
             else:
                 sonuc_yaz({"no":idx,"komut":k.get("komut"),"durum":"TAMAM"})
             

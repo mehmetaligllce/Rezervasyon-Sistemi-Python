@@ -22,6 +22,8 @@ V0.4 | 10/10 21:11 | K6 bakiye/iade/haftalık kota, K8 durum makinesi (giris pen
 
 V0.5 | 11/10 11:58 | K11 saat ilerletme (SAAT_GERI kontrolü, Pazartesi HAFTALIK_SIFIRLAMA bakiye kota eşitlemesi, TAMAMLANDI ve GELMEDI olayları, K11 öncelik ve zaman sıralaması) ve sorgu komutu (kullanici bakiye/guvenilirlik/rezervasyon listesi ve kaynak günlük doluluk/bakım listesi) tamamlandı. Örnek senaryodaki 12, 13 ve 15. komutlar doğrulandı | değişen: core/simule.py, core/sorgu.py, json_io/dosya_okuma.py
 
+V0.6 | 11/10 14:14 | K7 paket rezervasyon (BULUNAMADI, PAKET_BOYUTU, GUVENILIRLIK_DUSUK, PAKET_RED bakiye hariç 1–12 kontrol, PAKET_ICI_KESISME çakışma ve hazırlık denetimi, BAKIYE_YETERSIZ) uygulandı. Onaylanan paket ve kalemler sisteme kaydedilerek yeni rezervasyon kimlikleri atandı. Örnek senaryodaki 8. komut (p1, r3–r4, ücretler [48, 8], bakiye 244) ve 14. komut (iptal r4, iade 4, bakiye 248) birebir doğrulandı | değişen: core/paket.py, core/dogrulama.py, json_io/dosya_okuma.py
+
 ---
 
 ## Adımlar ve kilometre taşları
