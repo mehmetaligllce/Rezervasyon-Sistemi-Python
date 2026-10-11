@@ -4,8 +4,8 @@ import json
 import sys
 from core.dogrulama import rezervasyon_dogrula
 from core.durum import rezervasyon_durum
-
-
+from core.simule import saat_ilerlet
+from core.sorgu import sorgu_isle
 def baslangic_json_okuma(yol:str)->dict:
     try:
         with open(yol,"r",encoding="utf8") as b:
@@ -71,8 +71,17 @@ def komut_yaz(komutlar:list,baslangic_json:dict,saat:datetime=None,rezervasyonla
             elif k.get("komut") in ["giris","cikis","iptal"]:
                 durum=rezervasyon_durum(baslangic_json,k,rezervasyonlar,saat)
                 sonuc_yaz({"no":idx,"komut":k.get("komut"),**durum})
-                
             
+            elif k.get("komut")=="saat":
+                yeni_saat=datetime.fromisoformat(k["zaman"])
+                sonuc=saat_ilerlet(baslangic_json,rezervasyonlar,saat,yeni_saat)
+                if sonuc["durum"]=="TAMAM":
+                    saat=yeni_saat
+                sonuc_yaz({"no":idx,"komut":"saat",**sonuc})
+                
+            elif k.get("komut")=="sorgu":
+                sonuc=sorgu_isle(baslangic_json,k,rezervasyonlar,saat)
+                sonuc_yaz({"no":idx,"komut":"sorgu",**sonuc})
             else:
                 sonuc_yaz({"no":idx,"komut":k.get("komut"),"durum":"TAMAM"})
             
