@@ -26,6 +26,10 @@ V0.6 | 11/10 14:14 | K7 paket rezervasyon (BULUNAMADI, PAKET_BOYUTU, GUVENILIRLI
 
 V0.7 | 11/10 17:24 | K9 bekleme listesi (KESISME ve HAZIRLIK_IHLALI ile bekleme kaydı açma, BEKLEME_GEREKSIZ denetimi, güvenilirlik/kayıt saati/id sıralaması) ve otomatik atama (yer boşalınca tarama, K10 doğrulama ve OTOMATIK_ATAMA olay üretimi) uygulandı. Örnek senaryodaki 15 komutun tamamı beklenen sonuçlarla birebir doğrulandı | değişen: core/bekleme.py, core/simule.py, json_io/dosya_okuma.py, core/dogrulama.py
 
+V0.8 | 11/10 17:40 | Parametre değişikliği kontrolü yapıldı. Kodda sabit yazılmış parametre olmadığı tarandı; temel_ucret (12 -> 24 ile ücret 36 -> 72), hazirlik_dk (20 -> 10 ile HAZIRLIK_IHLALI -> BASARILI) ve ileri_gun (7 -> 14 ile ILERI_TARIH_SINIRI -> BASARILI) olmak üzere 3 farklı parametre değişikliğinin koda dokunmadan sonuçları dinamik olarak değiştirdiği doğrulandı. V1 kilometre taşı tamamlandı | değişen: yok (kod taraması ve dinamik doğrulama yapıldı)
+
+V0.8 | 11/10 18:16 | düzeltme: Yeni doküman ve örnekle gelen kullanici_ekle ve kaynak_ekle komutları eklendi, K10 yeni hata kontrolleri (ID_MEVCUT, TANIMSIZ_DEGER, GECERSIZ_DEGER) ve tüm sınır durumları doğrulandı. Yeni 19 komutluk senaryo 19/19 birebir başarıyla geçti | değişen: core/ekle.py, json_io/dosya_okuma.py
+
 ---
 
 ## Adımlar ve kilometre taşları

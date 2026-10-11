@@ -1,3 +1,5 @@
+from core.ekle import kaynak_ekle
+from core.ekle import kullanici_ekle
 from core.yard_fonksiyonlar import ucret_hesapla
 from datetime import datetime
 import json 
@@ -102,6 +104,14 @@ def komut_yaz(komutlar:list,baslangic_json:dict,saat:datetime=None,rezervasyonla
                     sonuc_yaz({"no":idx,"komut":k.get("komut"),**sonuc})
                 else:
                     sonuc_yaz({"no":idx,"komut":k.get("komut"),"durum":"RED","kod":sonuc})
+            elif k.get("komut")=="kullanici_ekle":
+                sonuc=kullanici_ekle(baslangic_json,k)
+                sonuc_yaz({"no":idx,"komut":k.get("komut"),**sonuc})
+
+
+            elif k.get("komut")=="kaynak_ekle":
+                sonuc=kaynak_ekle(baslangic_json,k)
+                sonuc_yaz({"no":idx,"komut":k.get("komut"),**sonuc})
 
                 
             else:
