@@ -24,6 +24,8 @@ V0.5 | 11/10 11:58 | K11 saat ilerletme (SAAT_GERI kontrolü, Pazartesi HAFTALIK
 
 V0.6 | 11/10 14:14 | K7 paket rezervasyon (BULUNAMADI, PAKET_BOYUTU, GUVENILIRLIK_DUSUK, PAKET_RED bakiye hariç 1–12 kontrol, PAKET_ICI_KESISME çakışma ve hazırlık denetimi, BAKIYE_YETERSIZ) uygulandı. Onaylanan paket ve kalemler sisteme kaydedilerek yeni rezervasyon kimlikleri atandı. Örnek senaryodaki 8. komut (p1, r3–r4, ücretler [48, 8], bakiye 244) ve 14. komut (iptal r4, iade 4, bakiye 248) birebir doğrulandı | değişen: core/paket.py, core/dogrulama.py, json_io/dosya_okuma.py
 
+V0.7 | 11/10 17:24 | K9 bekleme listesi (KESISME ve HAZIRLIK_IHLALI ile bekleme kaydı açma, BEKLEME_GEREKSIZ denetimi, güvenilirlik/kayıt saati/id sıralaması) ve otomatik atama (yer boşalınca tarama, K10 doğrulama ve OTOMATIK_ATAMA olay üretimi) uygulandı. Örnek senaryodaki 15 komutun tamamı beklenen sonuçlarla birebir doğrulandı | değişen: core/bekleme.py, core/simule.py, json_io/dosya_okuma.py, core/dogrulama.py
+
 ---
 
 ## Adımlar ve kilometre taşları

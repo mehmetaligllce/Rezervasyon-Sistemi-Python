@@ -1,7 +1,9 @@
+from core.bekleme import bekleme_tara
+from core import bekleme
 import core.sabitler as sbt
 from datetime import timedelta
 from datetime import datetime
-def saat_ilerlet(baslangic_veri:dict,rezervasyonlar:list,saat:datetime,yeni_saat:datetime):
+def saat_ilerlet(baslangic_veri:dict,rezervasyonlar:list,saat:datetime,yeni_saat:datetime,bekleme_listesi):
     if yeni_saat<saat:
         return {"durum":"RED","kod":"SAAT_GERI"}
 
@@ -26,18 +28,19 @@ def saat_ilerlet(baslangic_veri:dict,rezervasyonlar:list,saat:datetime,yeni_saat
                 })
 
 
-
-        if saat < datetime.fromisoformat(r["baslangic"])+timedelta(minutes=sbt.GEC_GIRIS) <= yeni_saat and r["durum"]=="ONAYLI":
+        gelmeme_zamani = (datetime.fromisoformat(r["baslangic"]) + timedelta(minutes=sbt.GEC_GIRIS))
+        if saat < gelmeme_zamani <= yeni_saat and r["durum"]=="ONAYLI":
                 r["durum"]="GELMEDI"
                 kullanici=next((t for t in baslangic_veri["kullanicilar"] if t["id"]==r["kullanici"]),None)
                 if kullanici:
                     kullanici["guvenilirlik"]-=min(15,kullanici["guvenilirlik"])
-                gelmeme_zamani = (datetime.fromisoformat(r["baslangic"]) + timedelta(minutes=sbt.GEC_GIRIS)).isoformat()[:16]
                 olaylar.append({
-                    "zaman":gelmeme_zamani,
+                    "zaman":gelmeme_zamani.isoformat()[:16],
                     "tur":"GELMEDI",
                     "rezervasyon":r["id"],
                     "kullanici":r["kullanici"],
                     "guvenilirlik":kullanici["guvenilirlik"]
                 })
+                atama_olay= bekleme_tara(baslangic_veri,r["kaynak"],rezervasyonlar,gelmeme_zamani,bekleme_listesi)
+                olaylar.extend(atama_olay)
     return {"durum": "TAMAM", "olaylar": sorted(olaylar, key=lambda x: (x["zaman"],{"HAFTALIK_SIFIRLAMA":0,"TAMAMLANDI":1,"GELMEDI":2}.get(x["tur"],99),int(x["rezervasyon"][1:]) if "rezervasyon" in x else 0))}

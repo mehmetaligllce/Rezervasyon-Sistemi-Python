@@ -80,7 +80,7 @@ def rezervasyon_dogrula(baslangic_veri:dict ,komut:dict,rezervasyonlar:list[dict
                 return "ARDISIK_KULLANIM"
             
     bakiye= kullanici["bakiye"]
-    if komut.get("komut") not in ["fiyat","kalem"]:
+    if komut.get("komut") not in ["fiyat","kalem","bekleme"]:
         ucret = ucret_hesapla(baslangic_veri,komut,rezervasyonlar,saat)  
         if  bakiye<ucret:
             return "BAKIYE_YETERSIZ"

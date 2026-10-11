@@ -7,6 +7,7 @@ from core.durum import rezervasyon_durum
 from core.simule import saat_ilerlet
 from core.sorgu import sorgu_isle
 from core.paket import paket_isle
+from core.bekleme import bekleme_kaydet
 def baslangic_json_okuma(yol:str)->dict:
     try:
         with open(yol,"r",encoding="utf8") as b:
@@ -46,6 +47,7 @@ def komut_yaz(komutlar:list,baslangic_json:dict,saat:datetime=None,rezervasyonla
     if rezervasyonlar is None:
         rezervasyonlar=[]
     paket_sayac=0
+    bekleme_listesi=[]
 
     for idx,k in enumerate(komutlar,1):
         if k.get("JSON_HATALI"):
@@ -76,7 +78,7 @@ def komut_yaz(komutlar:list,baslangic_json:dict,saat:datetime=None,rezervasyonla
             
             elif k.get("komut")=="saat":
                 yeni_saat=datetime.fromisoformat(k["zaman"])
-                sonuc=saat_ilerlet(baslangic_json,rezervasyonlar,saat,yeni_saat)
+                sonuc=saat_ilerlet(baslangic_json,rezervasyonlar,saat,yeni_saat,bekleme_listesi)
                 if sonuc["durum"]=="TAMAM":
                     saat=yeni_saat
                 sonuc_yaz({"no":idx,"komut":"saat",**sonuc})
@@ -84,11 +86,24 @@ def komut_yaz(komutlar:list,baslangic_json:dict,saat:datetime=None,rezervasyonla
             elif k.get("komut")=="sorgu":
                 sonuc=sorgu_isle(baslangic_json,k,rezervasyonlar,saat)
                 sonuc_yaz({"no":idx,"komut":"sorgu",**sonuc})
+
             elif k.get("komut")=="paket": 
                 sonuc=paket_isle(baslangic_json,k,rezervasyonlar,saat,paket_sayac)
                 if sonuc["durum"]=="TAMAM":
                     paket_sayac+=1
                 sonuc_yaz({"no":idx,"komut":"paket",**sonuc})
+
+            elif k.get("komut")=="bekleme":
+                sonuc=rezervasyon_dogrula(baslangic_json,k,rezervasyonlar,saat)
+                if sonuc=="BASARILI":
+                    sonuc_yaz({"no":idx,"komut":k.get("komut"),"durum":"RED","kod":"BEKLEME_GEREKSIZ"})
+                elif sonuc in ["KESISME","HAZIRLIK_IHLALI"]:
+                    sonuc=bekleme_kaydet(baslangic_json,k,rezervasyonlar,saat,bekleme_listesi)
+                    sonuc_yaz({"no":idx,"komut":k.get("komut"),**sonuc})
+                else:
+                    sonuc_yaz({"no":idx,"komut":k.get("komut"),"durum":"RED","kod":sonuc})
+
+                
             else:
                 sonuc_yaz({"no":idx,"komut":k.get("komut"),"durum":"TAMAM"})
             
