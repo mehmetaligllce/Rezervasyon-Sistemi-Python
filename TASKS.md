@@ -30,6 +30,8 @@ V0.8 | 11/10 17:40 | Parametre değişikliği kontrolü yapıldı. Kodda sabit y
 
 V0.8 | 11/10 18:16 | düzeltme: Yeni doküman ve örnekle gelen kullanici_ekle ve kaynak_ekle komutları eklendi, K10 yeni hata kontrolleri (ID_MEVCUT, TANIMSIZ_DEGER, GECERSIZ_DEGER) ve tüm sınır durumları doğrulandı. Yeni 19 komutluk senaryo 19/19 birebir başarıyla geçti | değişen: core/ekle.py, json_io/dosya_okuma.py
 
+V0.9 | 11/10 21:09 | Takvim verisi üretme fonksiyonu yazıldı. Seçilen gün için her kaynağın tüm rezervasyonları (tüm durumlar), hazırlık aralıkları ve bakım pencereleri kronolojik olarak toplandı; çakışan durumlar (iptal/gelmedi üzerine yeni rezervasyon) için alt satır katman numaralandırması yapıldı | değişen: core/takvim.py
+
 ---
 
 ## Adımlar ve kilometre taşları
