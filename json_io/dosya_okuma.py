@@ -1,16 +1,16 @@
 import json 
 import sys
 
-def baslangic_json_okuma(yol:str)->dict:
+def baslangic_veri_okuma(yol:str)->dict:
     try:
         with open(yol,"r",encoding="utf8") as b:
             return json.load(b)
 
     except Exception as e:
-        sys.stderr.write(f"Başlangıç dosyası okunamadı : {e} \n")
+        sys.stderr.write(f"Başlangıç verisi okunamadı : {e} \n")
         sys.exit(1)
 
-def komutlar_json_okuma(yol:str)-> list:
+def komutlar_okuma(yol:str)-> list:
     try:
         komutlar=[]
         with open(yol,"r",encoding="utf-8") as k:

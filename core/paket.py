@@ -1,11 +1,12 @@
 from datetime import datetime
 
+from core.sistem import Sistem
 from core.dogrulama import rezervasyon_dogrula
 from core.ucret_hesapla import ucret_hesapla
 
-def paket_isle(baslangic_json:dict,komut:dict,rezervasyonlar:list,saat:datetime,paket_sayac:int):
+def paket_isle(Sistem,komut:dict):
     
-    kullanici=next((k for k in baslangic_json["kullanicilar"] if k["id"]==komut["kullanici"]),None)
+    kullanici=next((k for k in Sistem.baslangic_veri["kullanicilar"] if k["id"]==komut["kullanici"]),None)
     if kullanici is None:
         return {"durum":"RED","kod":"BULUNAMADI","kalemler":[]}
 
@@ -28,7 +29,7 @@ def paket_isle(baslangic_json:dict,komut:dict,rezervasyonlar:list,saat:datetime,
             "bitis":p["bitis"]
         }
 
-        sonuc=rezervasyon_dogrula(baslangic_json,kalem_talep,rezervasyonlar,saat)
+        sonuc=rezervasyon_dogrula(Sistem,kalem_talep)
         if sonuc!="BASARILI":
             hataVarmi=True
             sonuclar.append({"sira":idx,"durum":"RED" ,"kod":sonuc})
@@ -39,7 +40,7 @@ def paket_isle(baslangic_json:dict,komut:dict,rezervasyonlar:list,saat:datetime,
         return {"durum":"RED","kod":"PAKET_RED","kalemler":sonuclar}
 
     
-    t_rez=rezervasyonlar+[{**kalemler[0],"durum":"ONAYLI","kullanici":kullanici["id"]}]
+    t_rez=Sistem.rezervasyonlar+[{**kalemler[0],"durum":"ONAYLI","kullanici":kullanici["id"]}]
 
     for k in kalemler[1:]:
         kalem_talep={
@@ -50,7 +51,7 @@ def paket_isle(baslangic_json:dict,komut:dict,rezervasyonlar:list,saat:datetime,
             "bitis":k["bitis"]
         }
 
-        sonuc=rezervasyon_dogrula(baslangic_json,kalem_talep,t_rez,saat)
+        sonuc=rezervasyon_dogrula(Sistem,kalem_talep,t_rez)
         if sonuc!="BASARILI":
             return {"durum":"RED","kod":"PAKET_ICI_KESISME","kalemler":sonuclar}
         if k!=kalemler[-1]:
@@ -68,7 +69,7 @@ def paket_isle(baslangic_json:dict,komut:dict,rezervasyonlar:list,saat:datetime,
             "baslangic":p["baslangic"],
             "bitis":p["bitis"]
         }
-        ucretler.append(ucret_hesapla(baslangic_json,kalem_talep,rezervasyonlar,saat))
+        ucretler.append(ucret_hesapla(Sistem,kalem_talep))
     toplam_ucret=sum(ucretler)
 
     if toplam_ucret > kullanici["bakiye"]:
@@ -76,14 +77,14 @@ def paket_isle(baslangic_json:dict,komut:dict,rezervasyonlar:list,saat:datetime,
     
     kullanici["bakiye"]-=toplam_ucret
 
-    paket_id=f"p{paket_sayac+1}"
+    paket_id=f"p{Sistem.paket_sayac+1}"
     yeni_rez_idler=[]
 
     for i,p in enumerate(kalemler):
-        rez_id=f"r{len(rezervasyonlar)+1}"
+        rez_id=f"r{len(Sistem.rezervasyonlar)+1}"
 
         yeni_rez_idler.append(rez_id)
-        rezervasyonlar.append({
+        Sistem.rezervasyonlar.append({
             "id":rez_id,
             "kullanici":kullanici["id"],
             "kaynak":p["kaynak"],

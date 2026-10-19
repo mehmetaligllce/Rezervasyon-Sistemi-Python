@@ -1,20 +1,22 @@
-def kullanici_ekle(baslangic_json:dict,komut:dict):
-    if any(k["id"] == komut["id"] for k in baslangic_json["kullanicilar"]):
+from core.sistem import Sistem 
+
+def kullanici_ekle(Sistem:Sistem,komut:dict):
+    if any(k["id"] == komut["id"] for k in Sistem.baslangic_veri["kullanicilar"]):
         return {"durum":"RED","kod":"ID_MEVCUT"}
 
-    if komut["rol"] not in baslangic_json["roller"]:
+    if komut["rol"] not in Sistem.baslangic_veri["roller"]:
         return {"durum":"RED","kod":"TANIMSIZ_DEGER"}
 
     if not (0<=komut["guvenilirlik"]<=100 and isinstance(komut["guvenilirlik"],int)):
         return {"durum":"RED","kod":"GECERSIZ_DEGER"}
 
     
-    kota=baslangic_json["roller"][komut["rol"]]["haftalik_kota"]
+    kota=Sistem.baslangic_veri["roller"][komut["rol"]]["haftalik_kota"]
     if not (0<=komut["bakiye"]<=kota and isinstance(komut["bakiye"],int)):
         return {"durum":"RED","kod":"GECERSIZ_DEGER"}
 
     
-    baslangic_json["kullanicilar"].append({ 
+    Sistem.baslangic_veri["kullanicilar"].append({ 
         "id": komut["id"], 
         "ad": komut["ad"],    
         "rol": komut["rol"], 
@@ -25,17 +27,17 @@ def kullanici_ekle(baslangic_json:dict,komut:dict):
     return{"durum":"TAMAM"}
 
 
-def kaynak_ekle(baslangic_json:dict,komut:dict):
-    if any(k["id"] == komut["id"] for k in baslangic_json["kaynaklar"]):
+def kaynak_ekle(Sistem:Sistem,komut:dict):
+    if any(k["id"] == komut["id"] for k in Sistem.baslangic_veri["kaynaklar"]):
         return {"durum":"RED","kod":"ID_MEVCUT"}
 
-    if komut["tur"] not in baslangic_json["kaynak_turleri"]:
+    if komut["tur"] not in Sistem.baslangic_veri["kaynak_turleri"]:
         return {"durum":"RED","kod":"TANIMSIZ_DEGER"}
 
-    if any(r not in baslangic_json["roller"] for r in komut.get("izinli_roller", [])):
+    if any(r not in Sistem.baslangic_veri["roller"] for r in komut.get("izinli_roller", [])):
         return {"durum": "RED", "kod": "TANIMSIZ_DEGER"}
 
-    baslangic_json["kaynaklar"].append({ 
+    Sistem.baslangic_veri["kaynaklar"].append({ 
         "id": komut["id"],
         "ad": komut["ad"],
         "tur": komut["tur"],

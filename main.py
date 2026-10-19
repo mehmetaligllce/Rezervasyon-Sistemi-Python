@@ -1,8 +1,11 @@
 import sys
+from core.sistem import Sistem
 from calistir.calistir import calistir
-from json_io.dosya_okuma import baslangic_json_okuma, komutlar_json_okuma
+from json_io.dosya_okuma import baslangic_veri_okuma, komutlar_okuma
 
-baslangic_json= baslangic_json_okuma(sys.argv[1])
-komutlar_json= komutlar_json_okuma(sys.argv[2])
-calistir(komutlar_json,baslangic_json)
+baslangic_veri= baslangic_veri_okuma(sys.argv[1])
+komutlar= komutlar_okuma(sys.argv[2])
+sistem=Sistem(baslangic_veri,komutlar)
+
+calistir(sistem)
 

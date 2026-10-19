@@ -1,15 +1,16 @@
 from datetime import datetime
+
+from core.sistem import Sistem
 from core.dogrulama import rezervasyon_dogrula
 from core.ucret_hesapla import ucret_hesapla
 
 
-def siralama(baslangic_json:dict,b:dict):
-    kullanici=next(k for k in baslangic_json["kullanicilar"] if k.get("id")==b["kullanici"])
+def siralama(Sistem:Sistem,b:dict):
+    kullanici=next(k for k in Sistem.baslangic_veri["kullanicilar"] if k.get("id")==b["kullanici"])
     return(-kullanici["guvenilirlik"],b["kayit_saati"],int(b["id"][1:]))
 
-
-def bekleme_kaydet(baslangic_json:dict,komut:dict,saat:datetime,bekleme_listesi:list,bekleme_sayac:int):
-    b_id=f"b{bekleme_sayac}"
+def bekleme_kaydet(Sistem:Sistem,komut:dict):
+    b_id=f"b{Sistem.bekleme_sayac}"
 
     yeni={
         "id": b_id,
@@ -17,12 +18,12 @@ def bekleme_kaydet(baslangic_json:dict,komut:dict,saat:datetime,bekleme_listesi:
         "kaynak": komut["kaynak"],
         "baslangic": komut["baslangic"],
         "bitis": komut["bitis"],
-        "kayit_saati": saat.isoformat()[:16]
+        "kayit_saati": Sistem.saat.isoformat()[:16]
     }
-    bekleme_listesi.append(yeni)
+    Sistem.bekleme_listesi.append(yeni)
 
-    kaynak_bekleyenler=[b for b in bekleme_listesi if komut["kaynak"]==b["kaynak"]]
-    kaynak_bekleyenler.sort(key=lambda b:siralama(baslangic_json,b))
+    kaynak_bekleyenler=[b for b in Sistem.bekleme_listesi if komut["kaynak"]==b["kaynak"]]
+    kaynak_bekleyenler.sort(key=lambda b:siralama(Sistem,b))
 
     sira=kaynak_bekleyenler.index(yeni)+1
 
@@ -31,19 +32,19 @@ def bekleme_kaydet(baslangic_json:dict,komut:dict,saat:datetime,bekleme_listesi:
 
 
 
-def bekleme_tara(baslangic_json:dict,kaynak_id:str,rezervasyonlar:list,saat:datetime,bekleme_listesi:list):
-    liste=[r for r in bekleme_listesi if r["kaynak"]==kaynak_id and datetime.fromisoformat(r["baslangic"])>=saat]
-    liste.sort(key=lambda b:siralama(baslangic_json,b))
+def bekleme_tara(Sistem:Sistem,kaynak_id:str,gelmeme_zamani:datetime):
+    liste=[r for r in Sistem.bekleme_listesi if r["kaynak"]==kaynak_id and datetime.fromisoformat(r["baslangic"])>=gelmeme_zamani]
+    liste.sort(key=lambda b:siralama(Sistem,b))
     olaylar=[]
 
     for l in liste:
-        sonuc=rezervasyon_dogrula(baslangic_json,l,rezervasyonlar,saat)
+        sonuc=rezervasyon_dogrula(Sistem,l)
         if sonuc=="BASARILI":
-            rez_id=f"r{len(rezervasyonlar)+1}"
-            ucret=ucret_hesapla(baslangic_json,l,rezervasyonlar,saat)
-            kullanici=next(k for k in baslangic_json["kullanicilar"] if k.get("id")==l["kullanici"])
+            rez_id=f"r{len(Sistem.rezervasyonlar)+1}"
+            ucret=ucret_hesapla(Sistem,l)
+            kullanici=next(k for k in Sistem.baslangic_veri["kullanicilar"] if k.get("id")==l["kullanici"])
             kullanici["bakiye"]-=ucret
-            rezervasyonlar.append({
+            Sistem.rezervasyonlar.append({
             "id": rez_id,
             "kullanici": l["kullanici"],
             "kaynak": l["kaynak"],
@@ -52,10 +53,10 @@ def bekleme_tara(baslangic_json:dict,kaynak_id:str,rezervasyonlar:list,saat:date
             "ucret": ucret,
             "durum": "ONAYLI"
             })
-            bekleme_listesi.remove(l)
+            Sistem.bekleme_listesi.remove(l)
             olaylar.append(
                 {
-                    "zaman": saat.isoformat()[:16],
+                    "zaman": gelmeme_zamani.isoformat()[:16],
                     "tur": "OTOMATIK_ATAMA",
                     "bekleme": l["id"],
                     "rezervasyon": rez_id,

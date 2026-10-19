@@ -1,15 +1,19 @@
 from datetime import datetime,timedelta
 
 import core.sabitler as sbt
+from core.sistem import Sistem
 from core.ucret_hesapla import ucret_hesapla
 
 
-def rezervasyon_dogrula(baslangic_veri:dict ,komut:dict,rezervasyonlar:list[dict],saat:datetime)->str:
+def rezervasyon_dogrula(Sistem:Sistem,komut:dict,rezervasyonlar:list=None)->str:
+    
+    if rezervasyonlar is None:
+        rezervasyonlar=Sistem.rezervasyonlar
 
-    kullanici = next((k for k in baslangic_veri["kullanicilar"] if k["id"]==komut["kullanici"]),None) 
+    kullanici = next((k for k in Sistem.baslangic_veri["kullanicilar"] if k["id"]==komut["kullanici"]),None) 
     kullanici_yok= kullanici is None
 
-    kaynak = next((k for k in baslangic_veri["kaynaklar"] if k["id"]==komut["kaynak"]),None) 
+    kaynak = next((k for k in Sistem.baslangic_veri["kaynaklar"] if k["id"]==komut["kaynak"]),None) 
     kaynak_yok=kaynak is None
     
     if kullanici_yok or kaynak_yok:
@@ -22,23 +26,23 @@ def rezervasyon_dogrula(baslangic_veri:dict ,komut:dict,rezervasyonlar:list[dict
 
     if dilim_yanlis or bitis<=baslangic:
         return "ZAMAN_ADIMI_HATASI"
-    if baslangic<saat:
+    if baslangic<Sistem.saat:
         return "GECMIS_ZAMAN"
     if baslangic.day != bitis.day or baslangic.hour<sbt.REZERVASYON_BASLANGIC  or bitis.hour>sbt.REZERVASYON_BITIS or( bitis.hour==sbt.REZERVASYON_BITIS and bitis.minute>0) :
         return "CALISMA_SAATI_DISI"
 
 
     kullanici_rol=kullanici["rol"]
-    max_sure=baslangic_veri["roller"][kullanici_rol]["azami_sure_dk"]
+    max_sure=Sistem.baslangic_veri["roller"][kullanici_rol]["azami_sure_dk"]
 
     if (bitis-baslangic).total_seconds()/60<sbt.REZERVASYON_MIN_DK or (bitis-baslangic).total_seconds()/60>max_sure:
         return "SURE_SINIRI"
     if kullanici["guvenilirlik"]<sbt.GUVENILIRLIK_ESIK:
         tarih_sinir=1
     else:
-        tarih_sinir=baslangic_veri["roller"][kullanici_rol]["ileri_gun"]
+        tarih_sinir=Sistem.baslangic_veri["roller"][kullanici_rol]["ileri_gun"]
         
-    if baslangic>saat + timedelta(days=tarih_sinir):
+    if baslangic>Sistem.saat + timedelta(days=tarih_sinir):
         return "ILERI_TARIH_SINIRI"
 
 
@@ -48,14 +52,14 @@ def rezervasyon_dogrula(baslangic_veri:dict ,komut:dict,rezervasyonlar:list[dict
         return "ROL_IZNI_YOK"
 
 
-    gerekli_sertifika = baslangic_veri["kaynak_turleri"][kaynak["tur"]]["sertifika"]
+    gerekli_sertifika = Sistem.baslangic_veri["kaynak_turleri"][kaynak["tur"]]["sertifika"]
     sertifika_yok= gerekli_sertifika is not None and gerekli_sertifika not in kullanici["sertifikalar"]
 
     if sertifika_yok:
         return "SERTIFIKA_YOK"
 
 
-    bakim_pencereleri=baslangic_veri["bakim_pencereleri"]
+    bakim_pencereleri=Sistem.baslangic_veri["bakim_pencereleri"]
 
     for b in bakim_pencereleri:
         if b["kaynak"]==kaynak["id"]:
@@ -76,7 +80,7 @@ def rezervasyon_dogrula(baslangic_veri:dict ,komut:dict,rezervasyonlar:list[dict
             return "KESISME"
 
 
-    hazirlik_suresi = timedelta(minutes=baslangic_veri["kaynak_turleri"][kaynak["tur"]]["hazirlik_dk"])
+    hazirlik_suresi = timedelta(minutes=Sistem.baslangic_veri["kaynak_turleri"][kaynak["tur"]]["hazirlik_dk"])
 
     for r in [t for t in rezervasyonlar if t["durum"] in  ["ONAYLI", "KULLANIMDA", "TAMAMLANDI"]]:
         if r["kaynak"] == kaynak["id"]:
@@ -100,7 +104,7 @@ def rezervasyon_dogrula(baslangic_veri:dict ,komut:dict,rezervasyonlar:list[dict
     bakiye= kullanici["bakiye"]
 
     if komut.get("komut") not in ["fiyat","kalem","bekleme"]:
-        ucret = ucret_hesapla(baslangic_veri,komut,rezervasyonlar,saat)  
+        ucret = ucret_hesapla(Sistem,komut)  
         if  bakiye<ucret:
             return "BAKIYE_YETERSIZ"
     return "BASARILI"

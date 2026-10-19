@@ -1,210 +1,359 @@
-import customtkinter as ctk
 from datetime import datetime
-from core.dogrulama import rezervasyon_dogrula
-from core.ucret_hesapla import ucret_hesapla
+
+import customtkinter as ctk
+
+import core.sabitler as sbt
+from ui.takvim_gorunumu import RENK, FONT
 
 HATA_ACIKLAMALARI = {
-    "BULUNAMADI": "Kullanıcı veya kaynak bulunamadı.",
-    "ZAMAN_ADIMI_HATASI": "Zaman 15 dakikalık adımlara oturmuyor veya bitiş başlangıçtan önce.",
-    "GECMIS_ZAMAN": "Başlangıç zamanı simüle saatten önce olamaz.",
-    "CALISMA_SAATI_DISI": "Rezervasyon 08:00–22:00 çalışma saatleri içinde ve aynı günde olmalıdır.",
-    "SURE_SINIRI": "Süre 30 dakikadan kısa veya rolün azami süresinden uzun.",
+    "BULUNAMADI": "Kullanıcı, kaynak ya da rezervasyon bulunamadı.",
+    "ZAMAN_ADIMI_HATASI": "Saatler 15 dakikalık adımlara oturmuyor ya da bitiş başlangıçtan önce.",
+    "GECMIS_ZAMAN": "Başlangıç, simüle saatten önce olamaz.",
+    "CALISMA_SAATI_DISI": "Rezervasyon aynı gün içinde 08:00–22:00 arasında olmalı.",
+    "SURE_SINIRI": "Süre 30 dakikadan kısa ya da rolün azami süresinden uzun.",
     "ILERI_TARIH_SINIRI": "Kullanıcının ileri tarih sınırı aşıldı.",
-    "ROL_IZNI_YOK": "Kullanıcının rolü bu kaynağı kullanmaya yetkili değil.",
-    "SERTIFIKA_YOK": "Kaynak için gerekli sertifika kullanıcıda bulunmuyor.",
-    "BAKIM": "Seçilen zaman aralığında kaynak bakımda.",
-    "KESISME": "Bu saat aralığında başka bir rezervasyon var.",
-    "HAZIRLIK_IHLALI": "Önceki rezervasyonun hazırlık/soğuma süresi henüz tamamlanmadı.",
-    "ARDISIK_KULLANIM": "Aynı kaynakta ardışık iki rezervasyon arasında en az 60 dk boşluk olmalıdır.",
-    "BAKIYE_YETERSIZ": "Kullanıcının bakiyesi bu rezervasyon için yetersiz."
+    "ROL_IZNI_YOK": "Kullanıcının rolü bu kaynağı rezerve edemez.",
+    "SERTIFIKA_YOK": "Kaynağın gerektirdiği sertifika kullanıcıda yok.",
+    "BAKIM": "Seçilen aralıkta kaynak bakımda.",
+    "KESISME": "Bu aralıkta başka bir rezervasyon var.",
+    "HAZIRLIK_IHLALI": "Önceki kullanımın hazırlık/soğuma süresi dolmadı.",
+    "ARDISIK_KULLANIM": "Aynı kaynakta ardışık iki rezervasyon arasında en az 60 dk boşluk olmalı.",
+    "BAKIYE_YETERSIZ": "Bakiye bu ücret için yetersiz.",
+    "PAKET_BOYUTU": "Pakette 2 ile 4 arasında kalem olmalı.",
+    "GUVENILIRLIK_DUSUK": "Güvenilirlik puanı düşük olduğu için paket rezervasyon yapılamaz.",
+    "PAKET_RED": "Paketteki en az bir kalem doğrulamadan geçemedi.",
+    "PAKET_ICI_KESISME": "Paketteki kalemler birbiriyle çakışıyor ya da hazırlık/ardışık kuralını bozuyor.",
+    "DURUM_HATASI": "Rezervasyonun mevcut durumu bu işleme uygun değil.",
+    "GIRIS_PENCERESI_DISI": "Giriş yalnızca başlangıçtan 10 dk önce ile 15 dk sonrası arasında yapılabilir.",
+    "BEKLEME_GEREKSIZ": "Talep zaten geçerli, bekleme kaydına gerek yok.",
+    "SAAT_GERI": "Saat geriye alınamaz.",
+    "ID_MEVCUT": "Bu id ile kayıtlı bir kullanıcı/kaynak zaten var.",
+    "TANIMSIZ_DEGER": "Rol, tür veya izinli rollerden biri başlangıç dosyasında tanımlı değil.",
+    "GECERSIZ_DEGER": "Bakiye veya güvenilirlik geçerli aralıkta değil.",
+    "JSON_HATALI": "Komut okunamadı.",
 }
 
+BEKLEME_KODLARI = ("KESISME", "HAZIRLIK_IHLALI")
+
+
+def aciklama(kod):
+    return HATA_ACIKLAMALARI.get(kod, "Modül bu işlemi reddetti.")
+
+
+def saat_secenekleri():
+    return [
+        f"{dk // 60:02d}:{dk % 60:02d}"
+        for dk in range(sbt.REZERVASYON_BASLANGIC * 60, sbt.REZERVASYON_BITIS * 60 + 1, 15)
+    ]
+
+
+def yazi(master, metin, **kw):
+    kw.setdefault("font", (FONT, 12))
+    kw.setdefault("text_color", RENK["soluk"])
+    return ctk.CTkLabel(master, text=metin, **kw)
+
+
+def kutu(master, degisken, **kw):
+    kw.setdefault("height", 32)
+    kw.setdefault("corner_radius", 8)
+    kw.setdefault("fg_color", RENK["kart"])
+    kw.setdefault("border_color", RENK["cizgi"])
+    kw.setdefault("text_color", RENK["metin"])
+    kw.setdefault("font", (FONT, 13))
+    return ctk.CTkEntry(master, textvariable=degisken, **kw)
+
+
+def dugme(master, metin, komut, tur="ikincil", **kw):
+    renkler = {
+        "birincil": (RENK["vurgu"], RENK["vurgu_koyu"]),
+        "tehlike": (RENK["kotu"], "#D84A4A"),
+        "ikincil": (RENK["kart"], RENK["cizgi"]),
+    }
+    normal, uzerinde = renkler[tur]
+    kw.setdefault("height", 32)
+    return ctk.CTkButton(
+        master, text=metin, command=komut, fg_color=normal, hover_color=uzerinde,
+        text_color="#FFFFFF" if tur != "ikincil" else RENK["metin"],
+        text_color_disabled=RENK["soluk"], corner_radius=8, font=(FONT, 12, "bold"), **kw,
+    )
+
+
+def menu(master, degisken, degerler, **kw):
+    return ctk.CTkOptionMenu(
+        master, variable=degisken, values=degerler, height=32, corner_radius=8,
+        fg_color=RENK["kart"], button_color=RENK["cizgi"], button_hover_color=RENK["vurgu_koyu"],
+        text_color=RENK["metin"], dropdown_fg_color=RENK["kart"], font=(FONT, 12),
+        dropdown_font=(FONT, 12), dynamic_resizing=False, **kw,
+    )
+
+
+class KalemSatiri(ctk.CTkFrame):
+    def __init__(self, master, degisti):
+        super().__init__(master, fg_color="transparent")
+        self.v_kaynak = ctk.StringVar(value="—")
+        self.v_bas = ctk.StringVar(value="11:00")
+        self.v_bit = ctk.StringVar(value="13:00")
+        saatler = saat_secenekleri()
+
+        self.menu = menu(self, self.v_kaynak, ["—"])
+        self.menu.grid(row=0, column=0, sticky="ew")
+        for sutun, degisken in ((1, self.v_bas), (2, self.v_bit)):
+            ctk.CTkComboBox(
+                self, variable=degisken, values=saatler, width=92, height=32, corner_radius=8,
+                fg_color=RENK["kart"], border_color=RENK["cizgi"], button_color=RENK["cizgi"],
+                button_hover_color=RENK["vurgu_koyu"], text_color=RENK["metin"],
+                dropdown_fg_color=RENK["kart"], font=(FONT, 12), dropdown_font=(FONT, 12),
+            ).grid(row=0, column=sutun, padx=(6, 0))
+        self.columnconfigure(0, weight=1)
+        for v in (self.v_kaynak, self.v_bas, self.v_bit):
+            v.trace_add("write", lambda *a: degisti())
+
+    def kaynaklari_ayarla(self, secenekler):
+        self.menu.configure(values=secenekler)
+        if self.v_kaynak.get() not in secenekler:
+            self.v_kaynak.set(secenekler[0])
+
+    def kaynak_id(self):
+        secim = self.v_kaynak.get()
+        return "" if secim == "—" else secim.split(" · ")[0].strip()
+
+    def saatleri_ata(self, bas, bit):
+        self.v_bas.set(bas)
+        self.v_bit.set(bit)
+
+
 class TalepFormu(ctk.CTkFrame):
-    """
-    Rezervasyon talep formu:
-    - Kullanıcı ve kaynak seçimi
-    - Başlangıç ve bitiş zamanı
-    - Fiyat önizleme (hata kodu ve Türkçe açıklaması ile)
-    - Rezervasyon oluşturma
-    """
-    def __init__(self, master, baslangic_veri: dict, rezervasyonlar: list, get_saat_fn, on_rezervasyon_callback=None, **kwargs):
-        super().__init__(master, corner_radius=12, **kwargs)
-        self.baslangic_veri = baslangic_veri
-        self.rezervasyonlar = rezervasyonlar
-        self.get_saat_fn = get_saat_fn
-        self.on_rezervasyon_callback = on_rezervasyon_callback
+    MAKS_KALEM = 5
 
-        self._bilesenleri_olustur()
+    def __init__(self, master, modul, kullanici_getter, gun_getter, gun_ata, **kwargs):
+        super().__init__(master, fg_color="transparent", **kwargs)
+        self.modul = modul
+        self.kullanici_getter = kullanici_getter
+        self.gun_getter = gun_getter
+        self.gun_ata = gun_ata
+        self.v_tarih = ctk.StringVar(value=gun_getter())
+        self.kalem_sayisi = 2
+        self.son_talep = None
+        self._plan = None
+        self._kur()
+        self.varsayilanlari_yenile()
 
-    def _bilesenleri_olustur(self):
-        # Başlık
-        self.lbl_baslik = ctk.CTkLabel(
-            self, text="Rezervasyon Talebi", font=ctk.CTkFont(size=18, weight="bold")
+    def _kur(self):
+        ust = ctk.CTkFrame(self, fg_color="transparent")
+        ust.pack(fill="x", pady=(4, 8))
+        self.mod = ctk.CTkSegmentedButton(
+            ust, values=["Tek", "Paket"], command=self._mod_degisti, height=30,
+            fg_color=RENK["kart"], selected_color=RENK["vurgu"], selected_hover_color=RENK["vurgu_koyu"],
+            unselected_color=RENK["kart"], unselected_hover_color=RENK["cizgi"], font=(FONT, 12, "bold"),
         )
-        self.lbl_baslik.pack(padx=16, pady=(16, 12), anchor="w")
+        self.mod.set("Tek")
+        self.mod.pack(side="left")
+        self.ent_tarih = kutu(ust, self.v_tarih, width=118, justify="center")
+        self.ent_tarih.pack(side="right")
+        self.ent_tarih.bind("<Return>", lambda e: self._tarih_uygula())
+        self.ent_tarih.bind("<FocusOut>", lambda e: self._tarih_uygula())
+        yazi(ust, "Gün").pack(side="right", padx=(0, 8))
+        self.v_tarih.trace_add("write", lambda *a: self.planla())
 
-        # Form Alanları Çerçevesi
-        form_frame = ctk.CTkFrame(self, fg_color="transparent")
-        form_frame.pack(padx=16, pady=4, fill="x")
+        baslik = ctk.CTkFrame(self, fg_color="transparent")
+        baslik.pack(fill="x")
+        baslik.columnconfigure(0, weight=1)
+        yazi(baslik, "Kaynak", font=(FONT, 11)).grid(row=0, column=0, sticky="w")
+        yazi(baslik, "Başlangıç", font=(FONT, 11), width=92).grid(row=0, column=1, padx=(6, 0))
+        yazi(baslik, "Bitiş", font=(FONT, 11), width=92).grid(row=0, column=2, padx=(6, 0))
 
-        # 1. Kullanıcı Seçimi
-        ctk.CTkLabel(form_frame, text="Kullanıcı:", font=ctk.CTkFont(size=13, weight="bold")).grid(row=0, column=0, sticky="w", pady=6)
-        self.kullanici_listesi = [f"{k['id']} - {k['ad']} ({k['rol']})" for k in self.baslangic_veri.get("kullanicilar", [])]
-        self.cmb_kullanici = ctk.CTkOptionMenu(form_frame, values=self.kullanici_listesi or ["-"])
-        self.cmb_kullanici.grid(row=0, column=1, sticky="ew", padx=(10, 0), pady=6)
+        self.kalem_cerceve = ctk.CTkFrame(self, fg_color="transparent")
+        self.kalem_cerceve.pack(fill="x")
+        self.satirlar = [KalemSatiri(self.kalem_cerceve, self.planla) for _ in range(self.MAKS_KALEM)]
 
-        # 2. Kaynak Seçimi
-        ctk.CTkLabel(form_frame, text="Kaynak:", font=ctk.CTkFont(size=13, weight="bold")).grid(row=1, column=0, sticky="w", pady=6)
-        self.kaynak_listesi = [f"{k['id']} - {k['ad']} ({k['tur']})" for k in self.baslangic_veri.get("kaynaklar", [])]
-        self.cmb_kaynak = ctk.CTkOptionMenu(form_frame, values=self.kaynak_listesi or ["-"])
-        self.cmb_kaynak.grid(row=1, column=1, sticky="ew", padx=(10, 0), pady=6)
+        self.paket_bar = ctk.CTkFrame(self, fg_color="transparent")
+        dugme(self.paket_bar, "+ Kalem", lambda: self._kalem_degistir(1), height=28, width=90).pack(side="left")
+        dugme(self.paket_bar, "− Kalem", lambda: self._kalem_degistir(-1), height=28, width=90).pack(side="left", padx=6)
 
-        # 3. Tarih
-        ctk.CTkLabel(form_frame, text="Tarih (YYYY-AA-GG):", font=ctk.CTkFont(size=13, weight="bold")).grid(row=2, column=0, sticky="w", pady=6)
-        suanki_saat = self.get_saat_fn()
-        varsayilan_tarih = suanki_saat.strftime("%Y-%m-%d") if isinstance(suanki_saat, datetime) else str(suanki_saat)[:10]
-        self.ent_tarih = ctk.CTkEntry(form_frame, placeholder_text="2027-03-08")
-        self.ent_tarih.insert(0, varsayilan_tarih)
-        self.ent_tarih.grid(row=2, column=1, sticky="ew", padx=(10, 0), pady=6)
+        fiyat = ctk.CTkFrame(self, fg_color=RENK["kart"], corner_radius=10)
+        fiyat.pack(fill="x", pady=(12, 8))
+        yazi(fiyat, "TAHMİNİ ÜCRET", font=(FONT, 10, "bold")).pack(anchor="w", padx=12, pady=(8, 0))
+        self.lbl_fiyat = ctk.CTkLabel(fiyat, text="—", font=(FONT, 24, "bold"), text_color=RENK["vurgu"])
+        self.lbl_fiyat.pack(anchor="w", padx=12)
+        self.lbl_fiyat_not = yazi(fiyat, "", wraplength=360, justify="left")
+        self.lbl_fiyat_not.pack(anchor="w", padx=12, pady=(0, 8))
 
-        # 4. Başlangıç Saati
-        ctk.CTkLabel(form_frame, text="Başlangıç (SS:DD):", font=ctk.CTkFont(size=13, weight="bold")).grid(row=3, column=0, sticky="w", pady=6)
-        self.ent_baslangic = ctk.CTkEntry(form_frame, placeholder_text="11:00")
-        self.ent_baslangic.insert(0, "11:00")
-        self.ent_baslangic.grid(row=3, column=1, sticky="ew", padx=(10, 0), pady=6)
+        dugme(self, "Rezerve Et", self.gonder, "birincil", height=38).pack(fill="x")
 
-        # 5. Bitiş Saati
-        ctk.CTkLabel(form_frame, text="Bitiş (SS:DD):", font=ctk.CTkFont(size=13, weight="bold")).grid(row=4, column=0, sticky="w", pady=6)
-        self.ent_bitis = ctk.CTkEntry(form_frame, placeholder_text="13:00")
-        self.ent_bitis.insert(0, "13:00")
-        self.ent_bitis.grid(row=4, column=1, sticky="ew", padx=(10, 0), pady=6)
+        self.sonuc_alani = ctk.CTkFrame(self, fg_color=RENK["kart"], corner_radius=10)
+        self.sonuc_alani.pack(fill="x", pady=(10, 0))
+        self.btn_bekleme = dugme(self, "⏳  Bu aralık için bekleme kaydı aç", self.bekleme_ac, height=34)
 
-        form_frame.columnconfigure(1, weight=1)
+        self._satirlari_diz()
 
-        # Butonlar Çerçevesi
-        btn_frame = ctk.CTkFrame(self, fg_color="transparent")
-        btn_frame.pack(padx=16, pady=12, fill="x")
-
-        self.btn_fiyat = ctk.CTkButton(
-            btn_frame, text="Fiyat Önizle", fg_color="#3B8ED0", hover_color="#1f6aa5",
-            command=self.fiyat_onizle
-        )
-        self.btn_fiyat.pack(side="left", expand=True, fill="x", padx=(0, 6))
-
-        self.btn_rezerve = ctk.CTkButton(
-            btn_frame, text="Rezerve Et", fg_color="#2ECC71", hover_color="#27ae60",
-            command=self.rezerve_et
-        )
-        self.btn_rezerve.pack(side="right", expand=True, fill="x", padx=(6, 0))
-
-        # Geri Bildirim / Sonuç Kutusu
-        self.lbl_sonuc = ctk.CTkLabel(
-            self, text="Talep bilgilerini girip Fiyat Önizle butonuna basabilirsiniz.",
-            font=ctk.CTkFont(size=12), text_color="#A0A0A0", wraplength=320, justify="left"
-        )
-        self.lbl_sonuc.pack(padx=16, pady=(4, 16), fill="x", anchor="w")
-
-    def _secili_verileri_al(self):
-        kullanici_str = self.cmb_kullanici.get()
-        kaynak_str = self.cmb_kaynak.get()
-        if not kullanici_str or kullanici_str == "-" or not kaynak_str or kaynak_str == "-":
-            return None, "Lütfen geçerli bir kullanıcı ve kaynak seçin."
-
-        kullanici_id = kullanici_str.split(" - ")[0].strip()
-        kaynak_id = kaynak_str.split(" - ")[0].strip()
-        tarih = self.ent_tarih.get().strip()
-        bas_saat = self.ent_baslangic.get().strip()
-        bit_saat = self.ent_bitis.get().strip()
-
-        if not tarih or not bas_saat or not bit_saat:
-            return None, "Lütfen tüm tarih ve saat alanlarını doldurun."
-
-        baslangic_iso = f"{tarih}T{bas_saat}"
-        bitis_iso = f"{tarih}T{bit_saat}"
-
-        komut = {
-            "komut": "fiyat",
-            "kullanici": kullanici_id,
-            "kaynak": kaynak_id,
-            "baslangic": baslangic_iso,
-            "bitis": bitis_iso
-        }
-        return komut, None
-
-    def fiyat_onizle(self):
-        komut, hata = self._secili_verileri_al()
-        if hata:
-            self._mesaj_goster(hata, basarili=False)
-            return
-
-        saat = self.get_saat_fn()
-        # 1-12 Doğrulama kontrolleri (fiyat komutu gibi)
-        sonuc = rezervasyon_dogrula(self.baslangic_veri, komut, self.rezervasyonlar, saat)
-        if sonuc != "BASARILI":
-            aciklama = HATA_ACIKLAMALARI.get(sonuc, "Bilinmeyen kural ihlali.")
-            self._mesaj_goster(f"RED: {sonuc}\n{aciklama}", basarili=False)
-            return
-
-        # Ücret hesapla
-        ucret = ucret_hesapla(self.baslangic_veri, komut, self.rezervasyonlar, saat)
-        kullanici = next((k for k in self.baslangic_veri["kullanicilar"] if k["id"] == komut["kullanici"]), None)
-        bakiye = kullanici["bakiye"] if kullanici else 0
-
-        if bakiye < ucret:
-            self._mesaj_goster(f"Tahmini Ücret: {ucret} KP\nUYARI: Bakiye Yetersiz! (Mevcut bakiye: {bakiye} KP)", basarili=False)
+    def _satirlari_diz(self):
+        for s in self.satirlar:
+            s.pack_forget()
+        n = 1 if self.mod.get() == "Tek" else self.kalem_sayisi
+        for s in self.satirlar[:n]:
+            s.pack(fill="x", pady=3)
+        if self.mod.get() == "Paket":
+            self.paket_bar.pack(fill="x", pady=(2, 0), after=self.kalem_cerceve)
         else:
-            self._mesaj_goster(f"Talep Geçerli!\nTahmini Ücret: {ucret} KP (Mevcut bakiye: {bakiye} KP, Kalan: {bakiye - ucret} KP)", basarili=True)
+            self.paket_bar.pack_forget()
 
-    def rezerve_et(self):
-        komut, hata = self._secili_verileri_al()
-        if hata:
-            self._mesaj_goster(hata, basarili=False)
+    def _mod_degisti(self, _):
+        self._satirlari_diz()
+        self.planla()
+
+    def _kalem_degistir(self, fark):
+        self.kalem_sayisi = max(1, min(self.MAKS_KALEM, self.kalem_sayisi + fark))
+        self._satirlari_diz()
+        self.planla()
+
+    def _tarih_uygula(self):
+        gun = self.v_tarih.get().strip()
+        try:
+            datetime.strptime(gun, "%Y-%m-%d")
+        except ValueError:
             return
+        self.gun_ata(gun)
 
-        komut["komut"] = "rezervasyon"
-        saat = self.get_saat_fn()
-
-        # Doğrulama (13. kontrol bakiye dahil)
-        sonuc = rezervasyon_dogrula(self.baslangic_veri, komut, self.rezervasyonlar, saat)
-        if sonuc != "BASARILI":
-            aciklama = HATA_ACIKLAMALARI.get(sonuc, "Bilinmeyen kural ihlali.")
-            self._mesaj_goster(f"RED: {sonuc}\n{aciklama}", basarili=False)
-            return
-
-        ucret = ucret_hesapla(self.baslangic_veri, komut, self.rezervasyonlar, saat)
-        kullanici = next((k for k in self.baslangic_veri["kullanicilar"] if k["id"] == komut["kullanici"]), None)
-        
-        # Bakiye düş
-        kullanici["bakiye"] -= ucret
-
-        # Yeni rezervasyon ID ata
-        yeni_no = len(self.rezervasyonlar) + 1
-        yeni_r = {
-            "id": f"r{yeni_no}",
-            "kullanici": komut["kullanici"],
-            "kaynak": komut["kaynak"],
-            "baslangic": komut["baslangic"],
-            "bitis": komut["bitis"],
-            "durum": "ONAYLI",
-            "ucret": ucret
-        }
-        self.rezervasyonlar.append(yeni_r)
-
-        self._mesaj_goster(
-            f"BAŞARILI!\nRezervasyon No: {yeni_r['id']}\nÜcret: {ucret} KP\nYeni Bakiye: {kullanici['bakiye']} KP",
-            basarili=True
-        )
-
-        if self.on_rezervasyon_callback:
-            self.on_rezervasyon_callback(yeni_r)
-
-    def _mesaj_goster(self, mesaj: str, basarili: bool):
-        renk = "#2ECC71" if basarili else "#E74C3C"
-        self.lbl_sonuc.configure(text=mesaj, text_color=renk)
+    def gun_yaz(self, gun):
+        if self.v_tarih.get() != gun:
+            self.v_tarih.set(gun)
 
     def listeleri_guncelle(self):
-        """Kullanıcı veya kaynak eklendiğinde açılır kutuları yeniler"""
-        self.kullanici_listesi = [f"{k['id']} - {k['ad']} ({k['rol']})" for k in self.baslangic_veri.get("kullanicilar", [])]
-        self.kaynak_listesi = [f"{k['id']} - {k['ad']} ({k['tur']})" for k in self.baslangic_veri.get("kaynaklar", [])]
-        self.cmb_kullanici.configure(values=self.kullanici_listesi or ["-"])
-        self.cmb_kaynak.configure(values=self.kaynak_listesi or ["-"])
+        secenekler = [f"{k['id']} · {k['ad']}" for k in self.modul.kaynaklar()] or ["—"]
+        for s in self.satirlar:
+            s.kaynaklari_ayarla(secenekler)
+
+    def varsayilanlari_yenile(self):
+        self.v_tarih.set(self.gun_getter())
+        bas, bit = self._varsayilan_saatler()
+        for s in self.satirlar:
+            s.saatleri_ata(bas, bit)
+        self.kalem_sayisi = 2
+        self.mod.set("Tek")
+        self._satirlari_diz()
+        self.listeleri_guncelle()
+        self._bekleme_gizle()
+        self._sonuc_goster([("Fiyat, alanlar değiştikçe otomatik hesaplanır.", RENK["soluk"])])
+        self.planla()
+
+    def _varsayilan_saatler(self):
+        saat = self.modul.saat()
+        if saat is None:
+            return "11:00", "13:00"
+        bas_dk = ((saat.hour * 60 + saat.minute + 14) // 15) * 15
+        bas_dk = min(max(bas_dk, sbt.REZERVASYON_BASLANGIC * 60), (sbt.REZERVASYON_BITIS - 1) * 60)
+        bit_dk = min(bas_dk + 60, sbt.REZERVASYON_BITIS * 60)
+        return f"{bas_dk // 60:02d}:{bas_dk % 60:02d}", f"{bit_dk // 60:02d}:{bit_dk % 60:02d}"
+
+    def _kalemler(self):
+        tarih = self.v_tarih.get().strip()
+        n = 1 if self.mod.get() == "Tek" else self.kalem_sayisi
+        return [
+            {
+                "kaynak": s.kaynak_id(),
+                "baslangic": f"{tarih}T{s.v_bas.get().strip()}",
+                "bitis": f"{tarih}T{s.v_bit.get().strip()}",
+            }
+            for s in self.satirlar[:n]
+        ]
+
+    def planla(self, *_):
+        if self._plan:
+            self.after_cancel(self._plan)
+        self._plan = self.after(250, self.onizle)
+        self._bekleme_gizle()
+
+    def onizle(self):
+        self._plan = None
+        if self.modul.sistem is None:
+            return
+        kid = self.kullanici_getter() or ""
+        paket = self.mod.get() == "Paket"
+        toplam, hatalar = 0, []
+        for i, kalem in enumerate(self._kalemler()):
+            s = self.modul.komut({"komut": "fiyat", "kullanici": kid, **kalem}, kaydet=False)
+            if s.get("durum") == "TAMAM":
+                toplam += s.get("ucret", 0)
+            else:
+                hatalar.append((i + 1, s.get("kod", "?")))
+        if not hatalar:
+            self.lbl_fiyat.configure(text=f"{toplam} KP", text_color=RENK["vurgu"])
+            self.lbl_fiyat_not.configure(text="Paket toplamı" if paket else "Talep geçerli görünüyor")
+        else:
+            self.lbl_fiyat.configure(text="—", text_color=RENK["soluk"])
+            if paket:
+                self.lbl_fiyat_not.configure(text="  ".join(f"Kalem {i}: {kod}" for i, kod in hatalar))
+            else:
+                kod = hatalar[0][1]
+                self.lbl_fiyat_not.configure(text=f"{kod} · {aciklama(kod)}")
+
+    def _sonuc_goster(self, satirlar):
+        for w in self.sonuc_alani.winfo_children():
+            w.destroy()
+        for i, (metin, renk) in enumerate(satirlar):
+            ctk.CTkLabel(
+                self.sonuc_alani, text=metin, text_color=renk, wraplength=360, justify="left", anchor="w",
+                font=(FONT, 13, "bold") if i == 0 else (FONT, 12),
+            ).pack(anchor="w", padx=12, pady=(10 if i == 0 else 0, 10 if i == len(satirlar) - 1 else 2))
+
+    def _bekleme_gizle(self):
+        self.btn_bekleme.pack_forget()
+        self.son_talep = None
+
+    @staticmethod
+    def _kisa(k):
+        return f"{k['kaynak']} {k['baslangic'][11:16]}–{k['bitis'][11:16]}"
+
+    def gonder(self):
+        kid = self.kullanici_getter() or ""
+        kalemler = self._kalemler()
+        if self.mod.get() == "Tek":
+            s = self.modul.komut({"komut": "rezervasyon", "kullanici": kid, **kalemler[0]})
+            if s.get("durum") == "TAMAM":
+                self._sonuc_goster([
+                    (f"✔  {s.get('rezervasyon_id')} oluşturuldu", RENK["iyi"]),
+                    (f"Ücret {s.get('ucret')} KP · yeni bakiye {s.get('bakiye')} KP", RENK["metin"]),
+                ])
+                return
+            kod = s.get("kod", "?")
+            self._sonuc_goster([(f"✘  {kod}", RENK["kotu"]), (aciklama(kod), RENK["soluk"])])
+            if kod in BEKLEME_KODLARI:
+                self.son_talep = {"kullanici": kid, **kalemler[0]}
+                self.btn_bekleme.pack(fill="x", pady=(8, 0))
+            return
+
+        s = self.modul.komut({"komut": "paket", "kullanici": kid, "kalemler": kalemler})
+        if s.get("durum") == "TAMAM":
+            satirlar = [
+                (f"✔  {s.get('paket_id')} oluşturuldu · toplam {s.get('toplam')} KP", RENK["iyi"]),
+                (f"Yeni bakiye {s.get('bakiye')} KP", RENK["metin"]),
+            ]
+            for rid, ucret, k in zip(s.get("rezervasyonlar", []), s.get("ucretler", []), kalemler):
+                satirlar.append((f"{rid}  ·  {self._kisa(k)}  ·  {ucret} KP", RENK["metin"]))
+            self._sonuc_goster(satirlar)
+            return
+        kod = s.get("kod", "?")
+        satirlar = [(f"✘  {kod}", RENK["kotu"]), (aciklama(kod), RENK["soluk"])]
+        for kalem in s.get("kalemler", []):
+            sira = kalem.get("sira", 0)
+            ad = f"Kalem {sira + 1} · {self._kisa(kalemler[sira])}" if sira < len(kalemler) else f"Kalem {sira + 1}"
+            if kalem.get("durum") == "TAMAM":
+                satirlar.append((f"✔  {ad}  geçti", RENK["iyi"]))
+            else:
+                kk = kalem.get("kod", "?")
+                satirlar.append((f"✘  {ad}\n      {kk} · {aciklama(kk)}", RENK["kotu"]))
+        self._sonuc_goster(satirlar)
+
+    def bekleme_ac(self):
+        if not self.son_talep:
+            return
+        s = self.modul.komut({"komut": "bekleme", **self.son_talep})
+        self._bekleme_gizle()
+        if s.get("durum") == "TAMAM":
+            self._sonuc_goster([
+                (f"⏳  {s.get('bekleme_id')} kaydedildi", RENK["iyi"]),
+                (f"Bekleme listesinde sıra: {s.get('sira')}", RENK["metin"]),
+            ])
+        else:
+            kod = s.get("kod", "?")
+            self._sonuc_goster([(f"✘  {kod}", RENK["kotu"]), (aciklama(kod), RENK["soluk"])])

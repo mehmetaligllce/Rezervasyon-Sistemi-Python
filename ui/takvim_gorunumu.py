@@ -1,249 +1,274 @@
 import tkinter as tk
-import customtkinter as ctk
 from datetime import datetime, timedelta
-from core.takvim import takvim_verisi_uret
-import core.sabitler as sbt
 
-DURUM_RENKLERI = {
-    "ONAYLI": "#2ECC71",       # Yeşil
-    "KULLANIMDA": "#3498DB",   # Mavi
-    "TAMAMLANDI": "#4A6572",   # Nötr Koyu Mavi/Gri
-    "GELMEDI": "#E74C3C",      # Kırmızı
-    "IPTAL": "#7F8C8D",        # Soluk Gri
-    "BAKIM": "#E67E22",        # Turuncu
-    "HAZIRLIK": "#F39C12"      # Sarı/Hardal
+import customtkinter as ctk
+
+import core.sabitler as sbt
+from core.takvim import takvim_verisi_uret
+
+FONT = "Segoe UI"
+
+RENK = {
+    "zemin": "#0E1016",
+    "panel": "#161A23",
+    "kart": "#1E2330",
+    "cizgi": "#2B3146",
+    "metin": "#E8EBF4",
+    "soluk": "#8B93AB",
+    "vurgu": "#6C8CFF",
+    "vurgu_koyu": "#566FD6",
+    "iyi": "#3DDC97",
+    "kotu": "#FF6B6B",
+    "uyari": "#FFB84D",
 }
 
+DURUM_RENKLERI = {
+    "ONAYLI": "#2FB67C",
+    "KULLANIMDA": "#4C8DFF",
+    "TAMAMLANDI": "#58627F",
+    "GELMEDI": "#E5584F",
+    "IPTAL": "#6F7689",
+    "BAKIM": "#F0923B",
+    "HAZIRLIK": "#C9A227",
+}
+
+GUN_ADLARI = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
+
+
 class TakvimGorunumu(ctk.CTkFrame):
-    """
-    08:00 - 22:00 Kaynak Takvimi Bileşeni
-    - Saat ekseni (15 dk adımlar ve saat başı çizgileri)
-    - Her kaynak için ayrı satır (çakışmalarda alt satır)
-    - Durum renkleri, bakım ve hazırlık kutuları
-    - Simüle saatin kırmızı dikey çizgiyle gösterimi
-    - Kutuya tıklandığında detay gösterimi
-    """
-    def __init__(self, master, baslangic_veri: dict, rezervasyonlar: list, get_saat_fn, on_rezervasyon_secildi=None, **kwargs):
-        super().__init__(master, corner_radius=12, **kwargs)
-        self.baslangic_veri = baslangic_veri
-        self.rezervasyonlar = rezervasyonlar
-        self.get_saat_fn = get_saat_fn
-        self.on_rezervasyon_secildi = on_rezervasyon_secildi
+    SOL = 150
+    UST = 42
+    SAG = 14
 
-        # Başlangıçta simüle saatin gününü seç
-        suanki = self.get_saat_fn()
-        self.secilen_gun = suanki.strftime("%Y-%m-%d") if isinstance(suanki, datetime) else str(suanki)[:10]
+    def __init__(self, master, modul, on_secim=None, on_gun_degisti=None, **kwargs):
+        super().__init__(master, corner_radius=14, fg_color=RENK["panel"], **kwargs)
+        self.modul = modul
+        self.on_secim = on_secim
+        self.on_gun_degisti = on_gun_degisti
+        self.secilen_gun = self._saat_gunu()
+        self.secili_id = None
+        self.kutular = []
+        self._ust_bar()
+        self._tuval()
+        self._lejant()
 
-        self._ust_bar_olustur()
-        self._cizim_alanini_olustur()
-        self._lejant_olustur()
+    def _saat_gunu(self):
+        saat = self.modul.saat()
+        return (saat or datetime.now()).strftime("%Y-%m-%d")
 
-        # İlk çizim
-        self.after(100, self.ciz)
-
-    def _ust_bar_olustur(self):
-        ust_frame = ctk.CTkFrame(self, fg_color="transparent")
-        ust_frame.pack(fill="x", padx=16, pady=(12, 6))
-
-        # Gün değiştirme butonları
-        self.btn_onceki = ctk.CTkButton(ust_frame, text="◀ Önceki Gün", width=95, height=30, command=self._onceki_gun)
-        self.btn_onceki.pack(side="left", padx=(0, 6))
-
-        self.lbl_gun = ctk.CTkLabel(ust_frame, text=self.secilen_gun, font=ctk.CTkFont(size=16, weight="bold"))
-        self.lbl_gun.pack(side="left", padx=8)
-
-        self.btn_sonraki = ctk.CTkButton(ust_frame, text="Sonraki Gün ▶", width=95, height=30, command=self._sonraki_gun)
-        self.btn_sonraki.pack(side="left", padx=(6, 12))
-
-        self.btn_bugun = ctk.CTkButton(
-            ust_frame, text="Bugün", width=70, height=30, fg_color="#4A5568", hover_color="#2D3748",
-            command=self._bugune_git
+    def _dugme(self, parent, metin, komut, genislik=36):
+        return ctk.CTkButton(
+            parent, text=metin, width=genislik, height=30, corner_radius=8,
+            fg_color=RENK["kart"], hover_color=RENK["cizgi"], text_color=RENK["metin"],
+            font=(FONT, 13, "bold"), command=komut,
         )
-        self.btn_bugun.pack(side="left")
 
-        # Sağ tarafta simüle saat bilgisi
-        self.lbl_saat_bilgi = ctk.CTkLabel(
-            ust_frame, text="", font=ctk.CTkFont(size=13, weight="bold"), text_color="#3B8ED0"
+    def _ust_bar(self):
+        bar = ctk.CTkFrame(self, fg_color="transparent")
+        bar.pack(fill="x", padx=16, pady=(14, 6))
+        self._dugme(bar, "‹", self._onceki).pack(side="left")
+        self.lbl_gun = ctk.CTkLabel(
+            bar, text="", width=230, font=(FONT, 16, "bold"), text_color=RENK["metin"]
         )
-        self.lbl_saat_bilgi.pack(side="right", padx=8)
+        self.lbl_gun.pack(side="left", padx=6)
+        self._dugme(bar, "›", self._sonraki).pack(side="left")
+        self._dugme(bar, "Bugün", self._bugun, 72).pack(side="left", padx=(10, 0))
+        ctk.CTkLabel(
+            bar, text="Kutuya tıkla → detay ve eylemler", font=(FONT, 12), text_color=RENK["soluk"]
+        ).pack(side="right")
+        self._gun_yaz()
 
-    def _cizim_alanini_olustur(self):
-        # Kaydırılabilir canvas çerçevesi
-        canvas_frame = ctk.CTkFrame(self, fg_color="#1E1E1E", corner_radius=8)
-        canvas_frame.pack(fill="both", expand=True, padx=16, pady=6)
-
-        self.canvas = tk.Canvas(
-            canvas_frame, bg="#1A1A1A", bd=0, highlightthickness=0
-        )
-        self.canvas.pack(fill="both", expand=True, padx=4, pady=4)
+    def _tuval(self):
+        cerceve = ctk.CTkFrame(self, fg_color=RENK["zemin"], corner_radius=10)
+        cerceve.pack(fill="both", expand=True, padx=16, pady=6)
+        self.canvas = tk.Canvas(cerceve, bg=RENK["zemin"], bd=0, highlightthickness=0)
+        self.canvas.pack(fill="both", expand=True, padx=2, pady=2)
         self.canvas.bind("<Configure>", lambda e: self.ciz())
-        self.canvas.bind("<Button-1>", self._canvas_tiklandi)
+        self.canvas.bind("<Button-1>", self._tikla)
+        self.canvas.bind("<Motion>", self._gezin)
 
-    def _lejant_olustur(self):
-        lejant_frame = ctk.CTkFrame(self, fg_color="transparent")
-        lejant_frame.pack(fill="x", padx=16, pady=(4, 10))
-
-        ctk.CTkLabel(lejant_frame, text="Durumlar:", font=ctk.CTkFont(size=12, weight="bold")).pack(side="left", padx=(0, 8))
+    def _lejant(self):
+        satir = ctk.CTkFrame(self, fg_color="transparent")
+        satir.pack(fill="x", padx=16, pady=(2, 12))
         for durum, renk in DURUM_RENKLERI.items():
-            kutu = ctk.CTkLabel(
-                lejant_frame, text=f" ■ {durum} ", text_color=renk, font=ctk.CTkFont(size=11, weight="bold")
-            )
-            kutu.pack(side="left", padx=4)
+            ctk.CTkLabel(
+                satir, text="●", width=12, text_color=renk, font=(FONT, 12)
+            ).pack(side="left", padx=(0, 2))
+            ctk.CTkLabel(
+                satir, text=durum.capitalize(), text_color=RENK["soluk"], font=(FONT, 11)
+            ).pack(side="left", padx=(0, 12))
 
-    def _onceki_gun(self):
-        d = datetime.strptime(self.secilen_gun, "%Y-%m-%d") - timedelta(days=1)
-        self.secilen_gun = d.strftime("%Y-%m-%d")
-        self.lbl_gun.configure(text=self.secilen_gun)
-        self.ciz()
+    def _gun_yaz(self):
+        d = datetime.strptime(self.secilen_gun, "%Y-%m-%d")
+        self.lbl_gun.configure(text=f"{self.secilen_gun}  ·  {GUN_ADLARI[d.weekday()]}")
 
-    def _sonraki_gun(self):
-        d = datetime.strptime(self.secilen_gun, "%Y-%m-%d") + timedelta(days=1)
-        self.secilen_gun = d.strftime("%Y-%m-%d")
-        self.lbl_gun.configure(text=self.secilen_gun)
+    def gun_ata(self, gun):
+        self.secilen_gun = gun
+        self._gun_yaz()
         self.ciz()
+        if self.on_gun_degisti:
+            self.on_gun_degisti(gun)
 
-    def _bugune_git(self):
-        suanki = self.get_saat_fn()
-        self.secilen_gun = suanki.strftime("%Y-%m-%d") if isinstance(suanki, datetime) else str(suanki)[:10]
-        self.lbl_gun.configure(text=self.secilen_gun)
-        self.ciz()
+    def _kaydir(self, gun_sayisi):
+        d = datetime.strptime(self.secilen_gun, "%Y-%m-%d") + timedelta(days=gun_sayisi)
+        self.gun_ata(d.strftime("%Y-%m-%d"))
+
+    def _onceki(self):
+        self._kaydir(-1)
+
+    def _sonraki(self):
+        self._kaydir(1)
+
+    def _bugun(self):
+        self.gun_ata(self._saat_gunu())
+
+    def _yuvarlak(self, x1, y1, x2, y2, r=6, **kw):
+        r = max(1, min(r, (x2 - x1) / 2, (y2 - y1) / 2))
+        p = [x1 + r, y1, x2 - r, y1, x2, y1, x2, y1 + r, x2, y2 - r, x2, y2,
+             x2 - r, y2, x1 + r, y2, x1, y2, x1, y2 - r, x1, y1 + r, x1, y1]
+        return self.canvas.create_polygon(p, smooth=True, **kw)
 
     def ciz(self):
-        """Takvimi sıfırdan çizer"""
-        self.canvas.delete("all")
-        self.tiklanabilir_kutular = []
-
-        w = self.canvas.winfo_width()
-        h = self.canvas.winfo_height()
-        if w < 100 or h < 100:
+        c = self.canvas
+        c.delete("all")
+        self.kutular = []
+        w, h = c.winfo_width(), c.winfo_height()
+        if w < 300 or h < 120:
+            return
+        sistem = self.modul.sistem
+        if sistem is None:
+            c.create_text(w / 2, h / 2, text="Başlangıç dosyası seçilmedi",
+                          fill=RENK["soluk"], font=(FONT, 13))
             return
 
-        # Üst simüle saat bilgisini güncelle
-        suanki_saat = self.get_saat_fn()
-        suanki_str = suanki_saat.strftime("%Y-%m-%d %H:%M") if isinstance(suanki_saat, datetime) else str(suanki_saat)
-        self.lbl_saat_bilgi.configure(text=f"Simüle Saat: {suanki_str}")
+        bas_saat, bit_saat = sbt.REZERVASYON_BASLANGIC, sbt.REZERVASYON_BITIS
+        toplam = (bit_saat - bas_saat) * 60
+        zaman_w = w - self.SOL - self.SAG
 
-        # Zaman aralığı sabitleri
-        SOL_BASLIK_W = 140
-        UST_ZAMAN_H = 34
-        ZAMAN_W = w - SOL_BASLIK_W - 20
-        if ZAMAN_W <= 0:
-            return
+        def x_of(dk):
+            return self.SOL + dk / toplam * zaman_w
 
-        BAS_SAAT = sbt.REZERVASYON_BASLANGIC  # 8
-        BIT_SAAT = sbt.REZERVASYON_BITIS      # 22
-        TOPLAM_DAKIKA = (BIT_SAAT - BAS_SAAT) * 60  # 14 * 60 = 840 dk
+        takvim = takvim_verisi_uret(sistem, self.secilen_gun)
+        kaynaklar = self.modul.kaynaklar()
+        alt = {
+            k["id"]: max([o.get("alt_satir", 0) for o in takvim.get(k["id"], [])], default=0) + 1
+            for k in kaynaklar
+        }
+        birim = max(30, min(58, (h - self.UST - 6) / (sum(alt.values()) or 1)))
 
-        # Zaman cetveli başlığı (08:00 - 22:00)
-        self.canvas.create_rectangle(0, 0, w, UST_ZAMAN_H, fill="#252526", outline="")
-        self.canvas.create_text(
-            SOL_BASLIK_W // 2, UST_ZAMAN_H // 2, text="KAYNAK", fill="#CCCCCC", font=("Segoe UI", 10, "bold")
-        )
+        c.create_rectangle(0, 0, w, self.UST, fill=RENK["panel"], outline="")
+        c.create_text(14, self.UST / 2, anchor="w", text="KAYNAK",
+                      fill=RENK["soluk"], font=(FONT, 9, "bold"))
 
-        for saat in range(BAS_SAAT, BIT_SAAT + 1):
-            dk = (saat - BAS_SAAT) * 60
-            x = SOL_BASLIK_W + (dk / TOPLAM_DAKIKA) * ZAMAN_W
-            # Saat başı metni
-            if saat < BIT_SAAT:
-                self.canvas.create_text(
-                    x + 18, UST_ZAMAN_H // 2, text=f"{saat:02d}:00", fill="#888888", font=("Segoe UI", 9)
-                )
-            # Dikey kılavuz çizgisi
-            self.canvas.create_line(x, UST_ZAMAN_H, x, h, fill="#333333", dash=(2, 2))
+        y = self.UST
+        satir_yer = {}
+        for i, k in enumerate(kaynaklar):
+            sat_h = birim * alt[k["id"]]
+            satir_yer[k["id"]] = (y, sat_h)
+            c.create_rectangle(0, y, w, y + sat_h,
+                               fill="#12151D" if i % 2 == 0 else "#151923", outline="")
+            c.create_text(14, y + sat_h / 2 - 8, anchor="w", text=k["id"],
+                          fill=RENK["metin"], font=(FONT, 10, "bold"))
+            c.create_text(14, y + sat_h / 2 + 8, anchor="w", text=k["ad"][:20],
+                          fill=RENK["soluk"], font=(FONT, 8))
+            y += sat_h
+        y_son = y
 
-        # Takvim verisini core'dan al
-        takvim_verisi = takvim_verisi_uret(self.baslangic_veri, self.rezervasyonlar, self.secilen_gun)
-        kaynaklar = self.baslangic_veri.get("kaynaklar", [])
-
-        SATIR_TABAN_H = 46
-        y_cursor = UST_ZAMAN_H
+        for dk in range(0, toplam + 1, 15):
+            x = x_of(dk)
+            if dk % 60 == 0:
+                c.create_line(x, self.UST - 12, x, y_son, fill="#38405A")
+                saat = bas_saat + dk // 60
+                if saat < bit_saat:
+                    c.create_text(x + 5, 14, anchor="w", text=f"{saat:02d}:00",
+                                  fill=RENK["soluk"], font=(FONT, 9, "bold"))
+                else:
+                    c.create_text(x - 3, 14, anchor="e", text=f"{saat:02d}:00",
+                                  fill=RENK["soluk"], font=(FONT, 9, "bold"))
+            elif dk % 30 == 0:
+                c.create_line(x, self.UST - 8, x, y_son, fill="#2C3247")
+            else:
+                c.create_line(x, self.UST - 5, x, y_son, fill="#212637")
 
         for k in kaynaklar:
             kid = k["id"]
-            ogeler = takvim_verisi.get(kid, [])
+            y0, _ = satir_yer[kid]
+            for oge in takvim.get(kid, []):
+                self._kutu_ciz(oge, kid, y0, birim, bas_saat, toplam, x_of)
 
-            # Maksimum alt satır sayısını bul
-            max_alt = max([o.get("alt_satir", 0) for o in ogeler], default=0)
-            satir_h = SATIR_TABAN_H * (max_alt + 1)
+        saat = self.modul.saat()
+        if saat and saat.strftime("%Y-%m-%d") == self.secilen_gun:
+            dk = (saat.hour - bas_saat) * 60 + saat.minute
+            if 0 <= dk <= toplam:
+                x = x_of(dk)
+                c.create_line(x, self.UST - 12, x, y_son, fill=RENK["kotu"], width=2)
+                self._yuvarlak(x - 22, self.UST - 22, x + 22, self.UST - 6, 5, fill=RENK["kotu"], outline="")
+                c.create_text(x, self.UST - 14, text=saat.strftime("%H:%M"),
+                              fill="#FFFFFF", font=(FONT, 8, "bold"))
 
-            # Kaynak arka planı ve sol etiketi
-            self.canvas.create_rectangle(0, y_cursor, w, y_cursor + satir_h, fill="#202020", outline="#2D2D2D")
-            self.canvas.create_text(
-                12, y_cursor + satir_h // 2, anchor="w",
-                text=f"{kid}\n{k['ad']}", fill="#E0E0E0", font=("Segoe UI", 9, "bold")
-            )
-            self.canvas.create_line(SOL_BASLIK_W, y_cursor, SOL_BASLIK_W, y_cursor + satir_h, fill="#383838")
+    def _kutu_ciz(self, oge, kid, y0, birim, bas_saat, toplam, x_of):
+        try:
+            bas = datetime.fromisoformat(oge["baslangic"])
+            bit = datetime.fromisoformat(oge["bitis"])
+        except Exception:
+            return
+        bas_dk = max(0, min(toplam, (bas.hour - bas_saat) * 60 + bas.minute))
+        bit_dk = max(0, min(toplam, (bit.hour - bas_saat) * 60 + bit.minute))
+        if bit_dk <= bas_dk:
+            return
+        x1, x2 = x_of(bas_dk) + 1, x_of(bit_dk) - 1
+        y1 = y0 + oge.get("alt_satir", 0) * birim + 4
+        y2 = y1 + birim - 8
 
-            # Kaynağın bloklarını çiz
-            for oge in ogeler:
-                alt = oge.get("alt_satir", 0)
-                kutu_y = y_cursor + alt * SATIR_TABAN_H + 5
-                kutu_h = SATIR_TABAN_H - 10
+        tur = oge.get("tur")
+        stipple = ""
+        kenar = RENK["zemin"]
+        dash = None
+        genislik = 1
+        if tur == "REZERVASYON":
+            durum = oge.get("durum", "ONAYLI")
+            renk = DURUM_RENKLERI.get(durum, "#2FB67C")
+            ilk = f"{oge.get('id')} · {oge.get('kullanici', '')}"
+            metin = f"{ilk}\n{durum}" if (y2 - y1) >= 30 else ilk
+            if durum in ("IPTAL", "GELMEDI"):
+                kenar, dash = "#C9CEDD", (3, 2)
+            if oge.get("id") == self.secili_id:
+                kenar, genislik, dash = "#FFFFFF", 2, None
+        elif tur == "BAKIM":
+            renk, stipple, metin = DURUM_RENKLERI["BAKIM"], "gray50", "BAKIM"
+        elif tur == "HAZIRLIK":
+            renk, stipple, metin = DURUM_RENKLERI["HAZIRLIK"], "gray50", "HAZIRLIK"
+        else:
+            renk, metin = "#555B70", str(tur)
 
-                try:
-                    bas_dt = datetime.fromisoformat(oge["baslangic"])
-                    bit_dt = datetime.fromisoformat(oge["bitis"])
-                except Exception:
-                    continue
+        opsiyon = {"fill": renk, "outline": kenar, "width": genislik}
+        if stipple:
+            opsiyon["stipple"] = stipple
+        if dash:
+            opsiyon["dash"] = dash
+        self._yuvarlak(x1, y1, x2, y2, 6, **opsiyon)
 
-                # Dakika koordinatları
-                bas_dk = (bas_dt.hour - BAS_SAAT) * 60 + bas_dt.minute
-                bit_dk = (bit_dt.hour - BAS_SAAT) * 60 + bit_dt.minute
+        max_kar = int((x2 - x1 - 10) / 6.3)
+        if max_kar >= 3:
+            satirlar = [s[:max_kar] for s in metin.split("\n")]
+            self.canvas.create_text(x1 + 7, (y1 + y2) / 2, anchor="w", text="\n".join(satirlar),
+                                    fill="#FFFFFF", font=(FONT, 8, "bold"))
+        self.kutular.append((x1, y1, x2, y2, dict(oge, kaynak=oge.get("kaynak", kid))))
 
-                # Sınırlar
-                bas_dk = max(0, min(TOPLAM_DAKIKA, bas_dk))
-                bit_dk = max(0, min(TOPLAM_DAKIKA, bit_dk))
-                if bit_dk <= bas_dk:
-                    continue
-
-                x1 = SOL_BASLIK_W + (bas_dk / TOPLAM_DAKIKA) * ZAMAN_W
-                x2 = SOL_BASLIK_W + (bit_dk / TOPLAM_DAKIKA) * ZAMAN_W
-
-                tur = oge.get("tur")
-                if tur == "REZERVASYON":
-                    durum = oge.get("durum", "ONAYLI")
-                    renk = DURUM_RENKLERI.get(durum, "#2ECC71")
-                    etiket = f"{oge['id']} ({oge.get('kullanici','')}) {durum}"
-                elif tur == "BAKIM":
-                    renk = DURUM_RENKLERI["BAKIM"]
-                    etiket = "BAKIM"
-                elif tur == "HAZIRLIK":
-                    renk = DURUM_RENKLERI["HAZIRLIK"]
-                    etiket = "HAZIRLIK"
-                else:
-                    renk = "#555555"
-                    etiket = tur
-
-                # Kutuyu çiz
-                rect_id = self.canvas.create_rectangle(
-                    x1, kutu_y, x2, kutu_y + kutu_h, fill=renk, outline="#1A1A1A", width=1.5
-                )
-
-                # Kutunun içine yazı yaz (sığıyorsa)
-                if (x2 - x1) > 40:
-                    self.canvas.create_text(
-                        (x1 + x2) // 2, kutu_y + kutu_h // 2,
-                        text=etiket, fill="#FFFFFF", font=("Segoe UI", 8, "bold")
-                    )
-
-                self.tiklanabilir_kutular.append((x1, kutu_y, x2, kutu_y + kutu_h, oge))
-
-            y_cursor += satir_h
-
-        # Simüle saat çizgisi (Seçilen gün bugüne eşitse dikey kırmızı çizgi)
-        if isinstance(suanki_saat, datetime) and suanki_saat.strftime("%Y-%m-%d") == self.secilen_gun:
-            if BAS_SAAT <= suanki_saat.hour <= BIT_SAAT:
-                sim_dk = (suanki_saat.hour - BAS_SAAT) * 60 + suanki_saat.minute
-                sim_x = SOL_BASLIK_W + (sim_dk / TOPLAM_DAKIKA) * ZAMAN_W
-                self.canvas.create_line(sim_x, UST_ZAMAN_H, sim_x, y_cursor, fill="#E74C3C", width=2.5)
-                self.canvas.create_polygon(
-                    sim_x - 5, UST_ZAMAN_H, sim_x + 5, UST_ZAMAN_H, sim_x, UST_ZAMAN_H + 8, fill="#E74C3C"
-                )
-
-    def _canvas_tiklandi(self, event):
-        x, y = event.x, event.y
-        for x1, y1, x2, y2, oge in getattr(self, "tiklanabilir_kutular", []):
+    def _kutu_bul(self, x, y):
+        for x1, y1, x2, y2, oge in reversed(self.kutular):
             if x1 <= x <= x2 and y1 <= y <= y2:
-                if self.on_rezervasyon_secildi:
-                    self.on_rezervasyon_secildi(oge)
-                break
+                return oge
+        return None
+
+    def _gezin(self, e):
+        self.canvas.configure(cursor="hand2" if self._kutu_bul(e.x, e.y) else "")
+
+    def _tikla(self, e):
+        oge = self._kutu_bul(e.x, e.y)
+        if oge is None:
+            return
+        self.secili_id = oge.get("id") if oge.get("tur") == "REZERVASYON" else None
+        self.ciz()
+        if self.on_secim:
+            self.on_secim(oge)

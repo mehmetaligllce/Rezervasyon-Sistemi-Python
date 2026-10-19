@@ -8,5 +8,3 @@ class Sistem :
         self.paket_sayac=0
         self.bekleme_sayac=0
         self.bekleme_listesi=[]
-
-        

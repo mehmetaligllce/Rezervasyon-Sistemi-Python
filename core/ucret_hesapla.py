@@ -2,9 +2,10 @@ import math
 from fractions import Fraction
 from datetime import datetime,timedelta
 
+from core.sistem import Sistem
 import core.sabitler as sbt
 
-def ucret_hesapla(baslangic_veri:dict,komut:dict,rezervasyonlar:list,saat:datetime)->int:
+def ucret_hesapla(Sistem:Sistem,komut:dict)->int:
 
     bas = datetime.fromisoformat(komut["baslangic"]) 
     bit = datetime.fromisoformat(komut["bitis"]) 
@@ -16,10 +17,10 @@ def ucret_hesapla(baslangic_veri:dict,komut:dict,rezervasyonlar:list,saat:dateti
     ]
 
     
-    tur = next(k["tur"] for k in baslangic_veri["kaynaklar"] if k["id"] == komut["kaynak"])   
-    temel_ucret = baslangic_veri["kaynak_turleri"][tur]["temel_ucret"] 
-    enerji_yogun_mu = baslangic_veri["kaynak_turleri"][tur]["enerji_yogun"]
-    toplam_kaynak = len([r for r in baslangic_veri["kaynaklar"] if r["tur"] == tur])
+    tur = next(k["tur"] for k in Sistem.baslangic_veri["kaynaklar"] if k["id"] == komut["kaynak"])   
+    temel_ucret = Sistem.baslangic_veri["kaynak_turleri"][tur]["temel_ucret"] 
+    enerji_yogun_mu = Sistem.baslangic_veri["kaynak_turleri"][tur]["enerji_yogun"]
+    toplam_kaynak = len([r for r in Sistem.baslangic_veri["kaynaklar"] if r["tur"] == tur])
     net_ucret = Fraction(0) 
 
     for dilim_bas, dilim_son in dilimler:
@@ -33,9 +34,9 @@ def ucret_hesapla(baslangic_veri:dict,komut:dict,rezervasyonlar:list,saat:dateti
         toplam_sure = 0
 
 
-        for r in rezervasyonlar:
+        for r in Sistem.rezervasyonlar:
             if r["durum"] in ["ONAYLI", "KULLANIMDA"]:
-                r_tur = next(k["tur"] for k in baslangic_veri["kaynaklar"] if k["id"] == r["kaynak"])
+                r_tur = next(k["tur"] for k in Sistem.baslangic_veri["kaynaklar"] if k["id"] == r["kaynak"])
                 if r_tur == tur:
                     r_bas = datetime.fromisoformat(r["baslangic"])
                     r_bit = datetime.fromisoformat(r["bitis"])

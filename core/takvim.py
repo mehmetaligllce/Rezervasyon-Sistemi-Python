@@ -1,13 +1,14 @@
 from datetime import timedelta,datetime
+from core.sistem import Sistem
 
-def takvim_verisi_uret(baslangic_json:dict,rezervasyonlar:list,secilen_gun:datetime):
+def takvim_verisi_uret(Sistem:Sistem,secilen_gun:datetime):
 
 
     gun=secilen_gun.strftime("%Y-%m-%d")if isinstance(secilen_gun,datetime) else str(secilen_gun)[:10]
-    takvim= {k["id"]:[] for k in baslangic_json["kaynaklar"]}
-    hazirlik_sureler={ k["id"]: baslangic_json["kaynak_turleri"][k["tur"]]["hazirlik_dk"] for k in baslangic_json["kaynaklar"]}
+    takvim= {k["id"]:[] for k in Sistem.baslangic_veri["kaynaklar"]}
+    hazirlik_sureler={ k["id"]: Sistem.baslangic_veri["kaynak_turleri"][k["tur"]]["hazirlik_dk"] for k in Sistem.baslangic_veri["kaynaklar"]}
 
-    for r in rezervasyonlar:
+    for r in Sistem.rezervasyonlar:
         if r["baslangic"].startswith(gun):
             takvim[r["kaynak"]].append({"tur":"REZERVASYON",**r})
 
@@ -23,7 +24,7 @@ def takvim_verisi_uret(baslangic_json:dict,rezervasyonlar:list,secilen_gun:datet
                     "rezervasyon_id":r["id"]
                 })
 
-    for b in baslangic_json.get("bakim_pencereleri",[]): 
+    for b in Sistem.baslangic_veri.get("bakim_pencereleri",[]): 
         if b["baslangic"].startswith(gun):
             takvim[b["kaynak"]].append({"tur":"BAKIM","baslangic":b["baslangic"],"bitis":b["bitis"]})
     
