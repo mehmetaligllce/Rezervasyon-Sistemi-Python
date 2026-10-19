@@ -1,7 +1,7 @@
 import customtkinter as ctk
 from datetime import datetime
 from core.dogrulama import rezervasyon_dogrula
-from core.yard_fonksiyonlar import ucret_hesapla
+from core.ucret_hesapla import ucret_hesapla
 
 HATA_ACIKLAMALARI = {
     "BULUNAMADI": "Kullanıcı veya kaynak bulunamadı.",

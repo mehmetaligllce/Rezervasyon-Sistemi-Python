@@ -1,11 +1,16 @@
-from core.yard_fonksiyonlar import ucret_hesapla
 from datetime import datetime
 from core.dogrulama import rezervasyon_dogrula
+from core.ucret_hesapla import ucret_hesapla
+
+
 def siralama(baslangic_json:dict,b:dict):
     kullanici=next(k for k in baslangic_json["kullanicilar"] if k.get("id")==b["kullanici"])
     return(-kullanici["guvenilirlik"],b["kayit_saati"],int(b["id"][1:]))
-def bekleme_kaydet(baslangic_json:dict,komut:dict,rezervasyonlar:list,saat:datetime,bekleme_listesi:list):
-    b_id=f"b{len(bekleme_listesi)+1}"
+
+
+def bekleme_kaydet(baslangic_json:dict,komut:dict,saat:datetime,bekleme_listesi:list,bekleme_sayac:int):
+    b_id=f"b{bekleme_sayac}"
+
     yeni={
         "id": b_id,
         "kullanici": komut["kullanici"],
@@ -30,6 +35,7 @@ def bekleme_tara(baslangic_json:dict,kaynak_id:str,rezervasyonlar:list,saat:date
     liste=[r for r in bekleme_listesi if r["kaynak"]==kaynak_id and datetime.fromisoformat(r["baslangic"])>=saat]
     liste.sort(key=lambda b:siralama(baslangic_json,b))
     olaylar=[]
+
     for l in liste:
         sonuc=rezervasyon_dogrula(baslangic_json,l,rezervasyonlar,saat)
         if sonuc=="BASARILI":
