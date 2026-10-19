@@ -32,6 +32,8 @@ V0.8 | 11/10 18:16 | düzeltme: Yeni doküman ve örnekle gelen kullanici_ekle v
 
 V0.9 | 11/10 21:09 | Takvim verisi üretme fonksiyonu yazıldı. Seçilen gün için her kaynağın tüm rezervasyonları (tüm durumlar), hazırlık aralıkları ve bakım pencereleri kronolojik olarak toplandı; çakışan durumlar (iptal/gelmedi üzerine yeni rezervasyon) için alt satır katman numaralandırması yapıldı | değişen: core/takvim.py
 
+V0.10 | 11/10 21:20 | Masaüstü arayüzü 1 (CustomTkinter) tamamlandı: 08:00–22:00 kaynak takvimi, durum renkleri, bakım ve hazırlık kutuları, simüle saat çizgisi, takvim kutusu detay penceresi; rezervasyon talep formu (anlık fiyat önizleme, bakiye denetimi, Türkçe açıklamalı hata mesajları ve onay) bağlandı ve örneğe göre doğrulandı | değişen: ui/talep_formu.py, ui/takvim_gorunumu.py, ui/app.py, requirements.txt
+
 ---
 
 ## Adımlar ve kilometre taşları
