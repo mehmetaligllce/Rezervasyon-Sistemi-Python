@@ -9,30 +9,30 @@ from core.takvim import takvim_verisi_uret
 FONT = "Segoe UI"
 
 RENK = {
-    "zemin": "#0E1016",
-    "panel": "#161A23",
-    "kart": "#1E2330",
-    "cizgi": "#2B3146",
-    "metin": "#E8EBF4",
-    "soluk": "#8B93AB",
-    "vurgu": "#6C8CFF",
-    "vurgu_koyu": "#566FD6",
-    "iyi": "#3DDC97",
-    "kotu": "#FF6B6B",
-    "uyari": "#FFB84D",
+    "zemin": "#1E3A34",      
+    "panel": "#27493F",      
+    "kart": "#315A4D",       
+    "cizgi": "#3A6060",      
+    "metin": "#E6F2EC",      
+    "soluk": "#E2D2EE",      
+    "vurgu": "#B14F64",      
+    "vurgu_koyu": "#963F52", 
+    "iyi": "#10B981",        
+    "kotu": "#EF4444",      
+    "uyari": "#F59E0B",      
 }
 
 DURUM_RENKLERI = {
-    "ONAYLI": "#2FB67C",
-    "KULLANIMDA": "#4C8DFF",
-    "TAMAMLANDI": "#58627F",
-    "GELMEDI": "#E5584F",
-    "IPTAL": "#6F7689",
-    "BAKIM": "#F0923B",
-    "HAZIRLIK": "#C9A227",
+    "ONAYLI": "#10B981",      
+    "KULLANIMDA": "#2563EB",   
+    "TAMAMLANDI": "#64748B",   
+    "GELMEDI": "#701A75",      
+    "IPTAL": "#FF6347",        
+    "BAKIM": "#FF8C00",        
+    "HAZIRLIK": "#06B6D4",     
 }
 
-GUN_ADLARI = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
+GUNLER = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
 
 
 class TakvimGorunumu(ctk.CTkFrame):
@@ -100,7 +100,7 @@ class TakvimGorunumu(ctk.CTkFrame):
 
     def _gun_yaz(self):
         d = datetime.strptime(self.secilen_gun, "%Y-%m-%d")
-        self.lbl_gun.configure(text=f"{self.secilen_gun}  ·  {GUN_ADLARI[d.weekday()]}")
+        self.lbl_gun.configure(text=f"{self.secilen_gun}  ·  {GUNLER[d.weekday()]}")
 
     def gun_ata(self, gun):
         self.secilen_gun = gun
@@ -166,7 +166,7 @@ class TakvimGorunumu(ctk.CTkFrame):
             sat_h = birim * alt[k["id"]]
             satir_yer[k["id"]] = (y, sat_h)
             c.create_rectangle(0, y, w, y + sat_h,
-                               fill="#12151D" if i % 2 == 0 else "#151923", outline="")
+                               fill="#1E3A34" if i % 2 == 0 else "#234339", outline="")
             c.create_text(14, y + sat_h / 2 - 8, anchor="w", text=k["id"],
                           fill=RENK["metin"], font=(FONT, 10, "bold"))
             c.create_text(14, y + sat_h / 2 + 8, anchor="w", text=k["ad"][:20],
@@ -232,6 +232,8 @@ class TakvimGorunumu(ctk.CTkFrame):
             metin = f"{ilk}\n{durum}" if (y2 - y1) >= 30 else ilk
             if durum in ("IPTAL", "GELMEDI"):
                 kenar, dash = "#C9CEDD", (3, 2)
+            elif durum == "TAMAMLANDI":
+                kenar = "#3E4459"
             if oge.get("id") == self.secili_id:
                 kenar, genislik, dash = "#FFFFFF", 2, None
         elif tur == "BAKIM":
@@ -251,8 +253,9 @@ class TakvimGorunumu(ctk.CTkFrame):
         max_kar = int((x2 - x1 - 10) / 6.3)
         if max_kar >= 3:
             satirlar = [s[:max_kar] for s in metin.split("\n")]
+            yazi_renk = "#0F172A" if oge.get("durum") == "ONAYLI" else "#FFFFFF"
             self.canvas.create_text(x1 + 7, (y1 + y2) / 2, anchor="w", text="\n".join(satirlar),
-                                    fill="#FFFFFF", font=(FONT, 8, "bold"))
+                                    fill=yazi_renk, font=(FONT, 8, "bold"))
         self.kutular.append((x1, y1, x2, y2, dict(oge, kaynak=oge.get("kaynak", kid))))
 
     def _kutu_bul(self, x, y):

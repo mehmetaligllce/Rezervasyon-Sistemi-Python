@@ -1,3 +1,7 @@
+{"komut":"kullanici_ekle","id":"u1","ad":"Ayşe Kaya","rol":"OGRENCI","sertifikalar":[],"bakiye":120,"guvenilirlik":80}
+{"komut":"kullanici_ekle","id":"u2","ad":"Mehmet Demir","rol":"OGRENCI","sertifikalar":[],"bakiye":120,"guvenilirlik":80}
+{"komut":"kaynak_ekle","id":"YAZ-1","ad":"3B Yazıcı 1","tur":"YAZICI","izinli_roller":["OGRENCI"]}
+{"komut":"kaynak_ekle","id":"LAB-1","ad":"Laboratuvar 1","tur":"LAB","izinli_roller":["OGRENCI","ARASTIRMACI","TEKNISYEN"]}
 {"komut":"rezervasyon","kullanici":"u1","kaynak":"YAZ-1","baslangic":"2027-03-08T11:00","bitis":"2027-03-08T13:00"}
 {"komut":"rezervasyon","kullanici":"u2","kaynak":"YAZ-2","baslangic":"2027-03-08T10:00","bitis":"2027-03-08T12:00"}
 {"komut":"rezervasyon","kullanici":"u2","kaynak":"YAZ-2","baslangic":"2027-03-08T12:30","bitis":"2027-03-08T13:30"}

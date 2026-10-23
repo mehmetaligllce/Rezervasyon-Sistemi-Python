@@ -12,20 +12,16 @@
     "TEKNISYEN":   { "haftalik_kota": 600, "ileri_gun": 30, "azami_sure_dk": 840 }
   },
   "kaynaklar": [
-    { "id": "ODA-1", "ad": "Toplantı Odası A",         "tur": "ODA",    "izinli_roller": ["OGRENCI", "ARASTIRMACI", "TEKNISYEN"] },
-    { "id": "ODA-2", "ad": "Toplantı Odası B",         "tur": "ODA",    "izinli_roller": ["OGRENCI", "ARASTIRMACI", "TEKNISYEN"] },
-    { "id": "LAB-1", "ad": "Gömülü Sistemler Laboratuvarı",  "tur": "LAB",    "izinli_roller": ["OGRENCI", "ARASTIRMACI", "TEKNISYEN"] },
-    { "id": "YAZ-1", "ad": "3B Yazıcı 1",              "tur": "YAZICI", "izinli_roller": ["OGRENCI", "ARASTIRMACI", "TEKNISYEN"] },
-    { "id": "YAZ-2", "ad": "3B Yazıcı 2",              "tur": "YAZICI", "izinli_roller": ["OGRENCI", "ARASTIRMACI", "TEKNISYEN"] },
-    { "id": "CIH-1", "ad": "GPU Sunucusu",             "tur": "CIHAZ",  "izinli_roller": ["ARASTIRMACI", "TEKNISYEN"] }
+    { "id": "YAZ-2", "ad": "3B Yazıcı 2",    "tur": "YAZICI", "izinli_roller": ["OGRENCI"] },
+    { "id": "CIH-1", "ad": "GPU Sunucusu 1", "tur": "CIHAZ",  "izinli_roller": ["ARASTIRMACI", "TEKNISYEN"] },
+    { "id": "ODA-1", "ad": "Toplantı Odası 1", "tur": "ODA",  "izinli_roller": ["OGRENCI", "ARASTIRMACI", "TEKNISYEN"] },
+    { "id": "ODA-2", "ad": "Toplantı Odası 2", "tur": "ODA",  "izinli_roller": ["OGRENCI", "ARASTIRMACI", "TEKNISYEN"] }
   ],
   "bakim_pencereleri": [
     { "kaynak": "YAZ-2", "baslangic": "2027-03-08T08:00", "bitis": "2027-03-08T10:00" }
   ],
   "kullanicilar": [
-    { "id": "u1", "ad": "Ayşe Kaya",    "rol": "OGRENCI",     "sertifikalar": ["LAB_GUVENLIK"],                   "bakiye": 120, "guvenilirlik": 80 },
-    { "id": "u2", "ad": "Can Demir",    "rol": "OGRENCI",     "sertifikalar": [],                                 "bakiye": 120, "guvenilirlik": 80 },
-    { "id": "u3", "ad": "Elif Arslan",  "rol": "ARASTIRMACI", "sertifikalar": ["LAB_GUVENLIK", "CIHAZ_EGITIMI"],  "bakiye": 300, "guvenilirlik": 80 },
-    { "id": "u4", "ad": "Murat Yıldız", "rol": "TEKNISYEN",   "sertifikalar": ["LAB_GUVENLIK", "CIHAZ_EGITIMI"],  "bakiye": 600, "guvenilirlik": 80 }
+    { "id": "u3", "ad": "Elif Şahin", "rol": "ARASTIRMACI", "sertifikalar": ["CIHAZ_EGITIMI"],
+      "bakiye": 300, "guvenilirlik": 80 }
   ]
 }

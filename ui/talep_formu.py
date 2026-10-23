@@ -5,39 +5,7 @@ import customtkinter as ctk
 import core.sabitler as sbt
 from ui.takvim_gorunumu import RENK, FONT
 
-HATA_ACIKLAMALARI = {
-    "BULUNAMADI": "Kullanıcı, kaynak ya da rezervasyon bulunamadı.",
-    "ZAMAN_ADIMI_HATASI": "Saatler 15 dakikalık adımlara oturmuyor ya da bitiş başlangıçtan önce.",
-    "GECMIS_ZAMAN": "Başlangıç, simüle saatten önce olamaz.",
-    "CALISMA_SAATI_DISI": "Rezervasyon aynı gün içinde 08:00–22:00 arasında olmalı.",
-    "SURE_SINIRI": "Süre 30 dakikadan kısa ya da rolün azami süresinden uzun.",
-    "ILERI_TARIH_SINIRI": "Kullanıcının ileri tarih sınırı aşıldı.",
-    "ROL_IZNI_YOK": "Kullanıcının rolü bu kaynağı rezerve edemez.",
-    "SERTIFIKA_YOK": "Kaynağın gerektirdiği sertifika kullanıcıda yok.",
-    "BAKIM": "Seçilen aralıkta kaynak bakımda.",
-    "KESISME": "Bu aralıkta başka bir rezervasyon var.",
-    "HAZIRLIK_IHLALI": "Önceki kullanımın hazırlık/soğuma süresi dolmadı.",
-    "ARDISIK_KULLANIM": "Aynı kaynakta ardışık iki rezervasyon arasında en az 60 dk boşluk olmalı.",
-    "BAKIYE_YETERSIZ": "Bakiye bu ücret için yetersiz.",
-    "PAKET_BOYUTU": "Pakette 2 ile 4 arasında kalem olmalı.",
-    "GUVENILIRLIK_DUSUK": "Güvenilirlik puanı düşük olduğu için paket rezervasyon yapılamaz.",
-    "PAKET_RED": "Paketteki en az bir kalem doğrulamadan geçemedi.",
-    "PAKET_ICI_KESISME": "Paketteki kalemler birbiriyle çakışıyor ya da hazırlık/ardışık kuralını bozuyor.",
-    "DURUM_HATASI": "Rezervasyonun mevcut durumu bu işleme uygun değil.",
-    "GIRIS_PENCERESI_DISI": "Giriş yalnızca başlangıçtan 10 dk önce ile 15 dk sonrası arasında yapılabilir.",
-    "BEKLEME_GEREKSIZ": "Talep zaten geçerli, bekleme kaydına gerek yok.",
-    "SAAT_GERI": "Saat geriye alınamaz.",
-    "ID_MEVCUT": "Bu id ile kayıtlı bir kullanıcı/kaynak zaten var.",
-    "TANIMSIZ_DEGER": "Rol, tür veya izinli rollerden biri başlangıç dosyasında tanımlı değil.",
-    "GECERSIZ_DEGER": "Bakiye veya güvenilirlik geçerli aralıkta değil.",
-    "JSON_HATALI": "Komut okunamadı.",
-}
-
 BEKLEME_KODLARI = ("KESISME", "HAZIRLIK_IHLALI")
-
-
-def aciklama(kod):
-    return HATA_ACIKLAMALARI.get(kod, "Modül bu işlemi reddetti.")
 
 
 def saat_secenekleri():
@@ -122,11 +90,14 @@ class KalemSatiri(ctk.CTkFrame):
         self.v_bit.set(bit)
 
 
-class TalepFormu(ctk.CTkFrame):
-    MAKS_KALEM = 5
-
+class TalepFormu(ctk.CTkScrollableFrame):
     def __init__(self, master, modul, kullanici_getter, gun_getter, gun_ata, **kwargs):
-        super().__init__(master, fg_color="transparent", **kwargs)
+        super().__init__(
+            master, fg_color="transparent",
+            scrollbar_button_color=RENK["cizgi"],
+            scrollbar_button_hover_color=RENK["vurgu"],
+            **kwargs,
+        )
         self.modul = modul
         self.kullanici_getter = kullanici_getter
         self.gun_getter = gun_getter
@@ -135,12 +106,21 @@ class TalepFormu(ctk.CTkFrame):
         self.kalem_sayisi = 2
         self.son_talep = None
         self._plan = None
+        self.satirlar = []
         self._kur()
         self.varsayilanlari_yenile()
 
+    def _yeni_satir(self):
+        s = KalemSatiri(self.kalem_cerceve, self.planla)
+        secenekler = [f"{k['id']} · {k['ad']}" for k in self.modul.kaynaklar()] or ["—"]
+        s.kaynaklari_ayarla(secenekler)
+        bas, bit = self._varsayilan_saatler()
+        s.saatleri_ata(bas, bit)
+        return s
+
     def _kur(self):
         ust = ctk.CTkFrame(self, fg_color="transparent")
-        ust.pack(fill="x", pady=(4, 8))
+        ust.pack(fill="x", pady=(2, 6))
         self.mod = ctk.CTkSegmentedButton(
             ust, values=["Tek", "Paket"], command=self._mod_degisti, height=30,
             fg_color=RENK["kart"], selected_color=RENK["vurgu"], selected_hover_color=RENK["vurgu_koyu"],
@@ -164,32 +144,32 @@ class TalepFormu(ctk.CTkFrame):
 
         self.kalem_cerceve = ctk.CTkFrame(self, fg_color="transparent")
         self.kalem_cerceve.pack(fill="x")
-        self.satirlar = [KalemSatiri(self.kalem_cerceve, self.planla) for _ in range(self.MAKS_KALEM)]
 
         self.paket_bar = ctk.CTkFrame(self, fg_color="transparent")
         dugme(self.paket_bar, "+ Kalem", lambda: self._kalem_degistir(1), height=28, width=90).pack(side="left")
         dugme(self.paket_bar, "− Kalem", lambda: self._kalem_degistir(-1), height=28, width=90).pack(side="left", padx=6)
 
         fiyat = ctk.CTkFrame(self, fg_color=RENK["kart"], corner_radius=10)
-        fiyat.pack(fill="x", pady=(12, 8))
-        yazi(fiyat, "TAHMİNİ ÜCRET", font=(FONT, 10, "bold")).pack(anchor="w", padx=12, pady=(8, 0))
-        self.lbl_fiyat = ctk.CTkLabel(fiyat, text="—", font=(FONT, 24, "bold"), text_color=RENK["vurgu"])
-        self.lbl_fiyat.pack(anchor="w", padx=12)
+        fiyat.pack(fill="x", pady=(6, 6))
+        fiyat_ust = ctk.CTkFrame(fiyat, fg_color="transparent")
+        fiyat_ust.pack(fill="x", padx=10, pady=(6, 2))
+        yazi(fiyat_ust, "TAHMİNİ ÜCRET", font=(FONT, 10, "bold")).pack(side="left")
+        self.lbl_fiyat = ctk.CTkLabel(fiyat_ust, text="—", font=(FONT, 18, "bold"), text_color=RENK["vurgu"])
+        self.lbl_fiyat.pack(side="right")
         self.lbl_fiyat_not = yazi(fiyat, "", wraplength=360, justify="left")
-        self.lbl_fiyat_not.pack(anchor="w", padx=12, pady=(0, 8))
+        self.lbl_fiyat_not.pack(anchor="w", padx=10, pady=(0, 6))
 
-        dugme(self, "Rezerve Et", self.gonder, "birincil", height=38).pack(fill="x")
+        self.btn_rezerve = dugme(self, "Rezerve Et", self.gonder, "birincil", height=36)
+        self.btn_rezerve.pack(fill="x", pady=(2, 0))
 
         self.sonuc_alani = ctk.CTkFrame(self, fg_color=RENK["kart"], corner_radius=10)
-        self.sonuc_alani.pack(fill="x", pady=(10, 0))
+        self.sonuc_alani.pack(fill="x", pady=(8, 0))
         self.btn_bekleme = dugme(self, "⏳  Bu aralık için bekleme kaydı aç", self.bekleme_ac, height=34)
-
-        self._satirlari_diz()
 
     def _satirlari_diz(self):
         for s in self.satirlar:
             s.pack_forget()
-        n = 1 if self.mod.get() == "Tek" else self.kalem_sayisi
+        n = 1 if self.mod.get() == "Tek" else len(self.satirlar)
         for s in self.satirlar[:n]:
             s.pack(fill="x", pady=3)
         if self.mod.get() == "Paket":
@@ -198,11 +178,20 @@ class TalepFormu(ctk.CTkFrame):
             self.paket_bar.pack_forget()
 
     def _mod_degisti(self, _):
+        if self.mod.get() == "Paket":
+            self.btn_rezerve.configure(text="Paketi Rezerve Et")
+        else:
+            self.btn_rezerve.configure(text="Rezerve Et")
         self._satirlari_diz()
         self.planla()
 
     def _kalem_degistir(self, fark):
-        self.kalem_sayisi = max(1, min(self.MAKS_KALEM, self.kalem_sayisi + fark))
+        if fark > 0:
+            self.satirlar.append(self._yeni_satir())
+        elif fark < 0 and len(self.satirlar) > 1:
+            eski = self.satirlar.pop()
+            eski.destroy()
+        self.kalem_sayisi = len(self.satirlar)
         self._satirlari_diz()
         self.planla()
 
@@ -225,11 +214,16 @@ class TalepFormu(ctk.CTkFrame):
 
     def varsayilanlari_yenile(self):
         self.v_tarih.set(self.gun_getter())
+        while len(self.satirlar) > 2:
+            self.satirlar.pop().destroy()
+        while len(self.satirlar) < 2:
+            self.satirlar.append(self._yeni_satir())
         bas, bit = self._varsayilan_saatler()
         for s in self.satirlar:
             s.saatleri_ata(bas, bit)
         self.kalem_sayisi = 2
         self.mod.set("Tek")
+        self.btn_rezerve.configure(text="Rezerve Et")
         self._satirlari_diz()
         self.listeleri_guncelle()
         self._bekleme_gizle()
@@ -271,6 +265,14 @@ class TalepFormu(ctk.CTkFrame):
         paket = self.mod.get() == "Paket"
         toplam, hatalar = 0, []
         for i, kalem in enumerate(self._kalemler()):
+            bas, bit = kalem.get("baslangic", ""), kalem.get("bitis", "")
+            if len(bas) < 16 or len(bit) < 16:
+                return
+            try:
+                datetime.fromisoformat(bas)
+                datetime.fromisoformat(bit)
+            except ValueError:
+                return
             s = self.modul.komut({"komut": "fiyat", "kullanici": kid, **kalem}, kaydet=False)
             if s.get("durum") == "TAMAM":
                 toplam += s.get("ucret", 0)
@@ -285,7 +287,7 @@ class TalepFormu(ctk.CTkFrame):
                 self.lbl_fiyat_not.configure(text="  ".join(f"Kalem {i}: {kod}" for i, kod in hatalar))
             else:
                 kod = hatalar[0][1]
-                self.lbl_fiyat_not.configure(text=f"{kod} · {aciklama(kod)}")
+                self.lbl_fiyat_not.configure(text=f"{kod}")
 
     def _sonuc_goster(self, satirlar):
         for w in self.sonuc_alani.winfo_children():
@@ -316,7 +318,7 @@ class TalepFormu(ctk.CTkFrame):
                 ])
                 return
             kod = s.get("kod", "?")
-            self._sonuc_goster([(f"✘  {kod}", RENK["kotu"]), (aciklama(kod), RENK["soluk"])])
+            self._sonuc_goster([(f"✘  {kod}", RENK["kotu"])])
             if kod in BEKLEME_KODLARI:
                 self.son_talep = {"kullanici": kid, **kalemler[0]}
                 self.btn_bekleme.pack(fill="x", pady=(8, 0))
@@ -333,7 +335,7 @@ class TalepFormu(ctk.CTkFrame):
             self._sonuc_goster(satirlar)
             return
         kod = s.get("kod", "?")
-        satirlar = [(f"✘  {kod}", RENK["kotu"]), (aciklama(kod), RENK["soluk"])]
+        satirlar = [(f"✘  {kod}", RENK["kotu"])]
         for kalem in s.get("kalemler", []):
             sira = kalem.get("sira", 0)
             ad = f"Kalem {sira + 1} · {self._kisa(kalemler[sira])}" if sira < len(kalemler) else f"Kalem {sira + 1}"
@@ -341,7 +343,7 @@ class TalepFormu(ctk.CTkFrame):
                 satirlar.append((f"✔  {ad}  geçti", RENK["iyi"]))
             else:
                 kk = kalem.get("kod", "?")
-                satirlar.append((f"✘  {ad}\n      {kk} · {aciklama(kk)}", RENK["kotu"]))
+                satirlar.append((f"✘  {ad} · {kk}", RENK["kotu"]))
         self._sonuc_goster(satirlar)
 
     def bekleme_ac(self):
@@ -356,4 +358,4 @@ class TalepFormu(ctk.CTkFrame):
             ])
         else:
             kod = s.get("kod", "?")
-            self._sonuc_goster([(f"✘  {kod}", RENK["kotu"]), (aciklama(kod), RENK["soluk"])])
+            self._sonuc_goster([(f"✘  {kod}", RENK["kotu"])])

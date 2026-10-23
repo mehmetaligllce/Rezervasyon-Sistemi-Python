@@ -7,13 +7,11 @@ if PROJE_KOK not in sys.path:
 
 import json
 import copy
+import customtkinter as ctk
 from datetime import datetime, timedelta
 from tkinter import filedialog, messagebox
-
-import customtkinter as ctk
-
 from core.sistem import Sistem
-from json_io.dosya_okuma import baslangic_veri_okuma
+from json_io.dosya_okuma import baslangic_veri_okuma, komutlar_okuma
 from core.dogrulama import rezervasyon_dogrula
 from core.ucret_hesapla import ucret_hesapla
 from core.durum import rezervasyon_durum
@@ -22,19 +20,13 @@ from core.sorgu import sorgu_isle
 from core.paket import paket_isle
 from core.bekleme import bekleme_kaydet
 from core.ekle import kullanici_ekle, kaynak_ekle
+from ui.takvim_gorunumu import TakvimGorunumu, RENK, DURUM_RENKLERI, FONT, GUNLER
+from ui.talep_formu import TalepFormu, yazi, kutu, dugme, menu
 
-from ui.takvim_gorunumu import TakvimGorunumu, RENK, DURUM_RENKLERI, FONT, GUN_ADLARI
-from ui.talep_formu import TalepFormu, aciklama, yazi, kutu, dugme, menu
+BASLANGIC_DOSYASI = "Örnek/baslangic.json"
+KOMUT_DOSYASI = "Örnek/komutlar.jsonl"
 
-VARSAYILAN_DOSYALAR = (
-    "Örnek/yeni_ornek/Örnek/baslangic.json",
-    "Örnek/baslangic.json",
-    "baslangic.json",
-)
-
-
-class ModulKoprusu:
-    """Arayüz ile rezervasyon modülü arasındaki tek temas noktası."""
+class Modul:
 
     def __init__(self):
         self.sistem = None
@@ -361,7 +353,7 @@ class RezervasyonDetay(ctk.CTkFrame):
             self.lbl_sonuc.configure(text="\n".join(satirlar), text_color=RENK["iyi"])
         else:
             kod = s.get("kod", "?")
-            self.lbl_sonuc.configure(text=f"✘ {kod} · {aciklama(kod)}", text_color=RENK["kotu"])
+            self.lbl_sonuc.configure(text=f"✘ {kod}", text_color=RENK["kotu"])
 
     def eylem(self, ad):
         s = self.modul.komut({"komut": ad, "rezervasyon": self.oge["id"]})
@@ -463,7 +455,7 @@ class UyeEkleFormu(ctk.CTkFrame):
             self.eklendi(komut["id"])
         else:
             kod = s.get("kod", "?")
-            self.lbl_sonuc.configure(text=f"✘ {kod}\n{aciklama(kod)}", text_color=RENK["kotu"])
+            self.lbl_sonuc.configure(text=f"✘ {kod}", text_color=RENK["kotu"])
 
 
 class KaynakEkleFormu(ctk.CTkFrame):
@@ -527,7 +519,7 @@ class KaynakEkleFormu(ctk.CTkFrame):
             self.v_ad.set("")
         else:
             kod = s.get("kod", "?")
-            self.lbl_sonuc.configure(text=f"✘ {kod}\n{aciklama(kod)}", text_color=RENK["kotu"])
+            self.lbl_sonuc.configure(text=f"✘ {kod}", text_color=RENK["kotu"])
 
 
 class GunlukPaneli(ctk.CTkFrame):
@@ -591,6 +583,85 @@ class GunlukPaneli(ctk.CTkFrame):
         )
 
 
+class KomutPaneli(ctk.CTkFrame):
+    def __init__(self, master, on_calistir_adim, on_calistir_hepsi, on_dosya_sec, on_sifirla):
+        super().__init__(master, fg_color="transparent")
+        self.on_calistir_adim = on_calistir_adim
+        self.on_calistir_hepsi = on_calistir_hepsi
+        self.on_dosya_sec = on_dosya_sec
+        self.on_sifirla = on_sifirla
+
+        ust = ctk.CTkFrame(self, fg_color="transparent")
+        ust.pack(fill="x", pady=(4, 6))
+        dugme(ust, "📁  Dosya Seç (.jsonl)", self.on_dosya_sec, "birincil", height=32).pack(side="left")
+        self.lbl_dosya = yazi(ust, "dosya seçilmedi", wraplength=200)
+        self.lbl_dosya.pack(side="left", padx=10)
+
+        sayac_cerceve = ctk.CTkFrame(self, fg_color=RENK["kart"], corner_radius=10)
+        sayac_cerceve.pack(fill="x", pady=4)
+        self.lbl_sayac = ctk.CTkLabel(sayac_cerceve, text="0 / 0 komut işlendi", font=(FONT, 13, "bold"), text_color=RENK["metin"])
+        self.lbl_sayac.pack(anchor="w", padx=12, pady=(6, 2))
+        self.bar_ilerleme = ctk.CTkProgressBar(sayac_cerceve, height=6, progress_color=RENK["vurgu"], fg_color=RENK["cizgi"])
+        self.bar_ilerleme.set(0)
+        self.bar_ilerleme.pack(fill="x", padx=12, pady=(2, 8))
+
+        butonlar = ctk.CTkFrame(self, fg_color="transparent")
+        butonlar.pack(fill="x", pady=4)
+        butonlar.columnconfigure((0, 1), weight=1, uniform="a")
+        self.btn_adim = dugme(butonlar, "▶  Sonraki Adım", self.on_calistir_adim, "birincil", height=34)
+        self.btn_adim.grid(row=0, column=0, sticky="ew", padx=(0, 4))
+        self.btn_hepsi = dugme(butonlar, "⏩  Tümünü Çalıştır", self.on_calistir_hepsi, "ikincil", height=34)
+        self.btn_hepsi.grid(row=0, column=1, sticky="ew", padx=(4, 0))
+
+        dugme(self, "↺  Senaryoyu Başa Sar", self.on_sifirla, "ikincil", height=28).pack(fill="x", pady=(4, 6))
+
+        yazi(self, "SIRADAKİ KOMUT", font=(FONT, 10, "bold")).pack(anchor="w", pady=(4, 2))
+        self.txt_siradaki = ctk.CTkTextbox(
+            self, height=85, fg_color=RENK["kart"], text_color=RENK["metin"], font=("Consolas", 11),
+            wrap="word", corner_radius=10,
+        )
+        self.txt_siradaki.pack(fill="x", pady=(0, 6))
+        self.txt_siradaki.insert("1.0", "Dosya yüklendiğinde sıradaki komut burada görünür.")
+        self.txt_siradaki.configure(state="disabled")
+
+        yazi(self, "KOMUT AKIŞI", font=(FONT, 10, "bold")).pack(anchor="w", pady=(4, 2))
+        self.liste_frame = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.liste_frame.pack(fill="both", expand=True)
+
+    def guncelle(self, dosya_adi, toplam, indeks, siradaki_komut):
+        self.lbl_dosya.configure(text=dosya_adi or "seçilmedi")
+        self.lbl_sayac.configure(text=f"{indeks} / {toplam} komut işlendi")
+        self.bar_ilerleme.set((indeks / toplam) if toplam > 0 else 0)
+
+        self.btn_adim.configure(state="normal" if indeks < toplam else "disabled")
+        self.btn_hepsi.configure(state="normal" if indeks < toplam else "disabled")
+
+        self.txt_siradaki.configure(state="normal")
+        self.txt_siradaki.delete("1.0", "end")
+        if siradaki_komut:
+            self.txt_siradaki.insert("1.0", json.dumps(siradaki_komut, ensure_ascii=False, indent=2))
+        elif toplam > 0 and indeks >= toplam:
+            self.txt_siradaki.insert("1.0", "✔ Dosyadaki tüm komutlar başarıyla tamamlandı.")
+        else:
+            self.txt_siradaki.insert("1.0", "Komut dosyası seçilmedi.")
+        self.txt_siradaki.configure(state="disabled")
+
+    def listeyi_yenile(self, komutlar, aktif_indeks):
+        for w in self.liste_frame.winfo_children():
+            w.destroy()
+        for i, k in enumerate(komutlar):
+            if i < aktif_indeks:
+                renk, simge = RENK["iyi"], "✔"
+            elif i == aktif_indeks:
+                renk, simge = RENK["vurgu"], "▶"
+            else:
+                renk, simge = RENK["soluk"], "○"
+            turu = k.get("komut", "JSON_HATALI" if k.get("JSON_HATALI") else "?")
+            hedef = k.get("kullanici") or k.get("rezervasyon") or k.get("id") or ""
+            metin = f"{simge} #{i+1:<3} {turu:<14} {str(hedef):<8}"
+            yazi(self.liste_frame, metin, text_color=renk, font=("Consolas", 11)).pack(anchor="w", pady=1)
+
+
 class KampusRezervasyonApp(ctk.CTk):
     def __init__(self, baslangic_yolu=None):
         super().__init__()
@@ -601,8 +672,13 @@ class KampusRezervasyonApp(ctk.CTk):
         self.minsize(1200, 740)
         self.configure(fg_color=RENK["zemin"])
 
-        self.modul = ModulKoprusu()
+        self.modul = Modul()
         self._gosterilen = 0
+        self.yuklu_komutlar = []
+        self.komut_indeksi = 0
+        self.komut_dosyasi_yolu = None
+        self.aktif_baslangic_yolu = None
+
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
 
@@ -614,7 +690,7 @@ class KampusRezervasyonApp(ctk.CTk):
         self.gunluk.grid_propagate(False)
         self.modul.dinleyici = self.guncelle
 
-        yol = baslangic_yolu or next((y for y in VARSAYILAN_DOSYALAR if os.path.exists(y)), None)
+        yol = baslangic_yolu or next((y for y in [BASLANGIC_DOSYASI] if os.path.exists(y)), None)
         if yol:
             self.dosya_yukle(yol)
 
@@ -623,11 +699,20 @@ class KampusRezervasyonApp(ctk.CTk):
         bar.grid(row=0, column=0, sticky="ew", padx=14, pady=14)
         bar.pack_propagate(False)
 
-        ctk.CTkLabel(bar, text="🏛  Kampüs Kaynak Rezervasyon", font=(FONT, 17, "bold"),
-                     text_color=RENK["vurgu"]).pack(side="left", padx=(18, 14))
-        dugme(bar, "📁  Başlangıç dosyası", self._dosya_sec, width=170).pack(side="left")
-        self.lbl_dosya = yazi(bar, "dosya seçilmedi")
-        self.lbl_dosya.pack(side="left", padx=10)
+        ctk.CTkLabel(bar, text="🏛  Kampüs Rezervasyon", font=(FONT, 16, "bold"),
+                     text_color=RENK["vurgu"]).pack(side="left", padx=(16, 10))
+        dugme(bar, "📁 Başlangıç", self._dosya_sec, width=120).pack(side="left")
+        self.lbl_dosya = yazi(bar, "seçilmedi", wraplength=110)
+        self.lbl_dosya.pack(side="left", padx=(4, 10))
+
+        # Komut dosyası yükleme ve hızlı adımlama butonları
+        dugme(bar, "📜 Komutlar", self._komut_dosyasi_sec, width=110).pack(side="left")
+        self.btn_hizli_adim = dugme(bar, "▶ Adım", self.komut_adimi_calistir, width=65, state="disabled")
+        self.btn_hizli_adim.pack(side="left", padx=(4, 2))
+        self.btn_hizli_hepsi = dugme(bar, "⏩ Tümü", self.tum_komutlari_calistir, width=65, state="disabled")
+        self.btn_hizli_hepsi.pack(side="left", padx=2)
+        self.lbl_komut_durum = yazi(bar, "", font=(FONT, 11, "bold"), text_color=RENK["vurgu"])
+        self.lbl_komut_durum.pack(side="left", padx=(4, 8))
 
         sag = ctk.CTkFrame(bar, fg_color="transparent")
         sag.pack(side="right", padx=16)
@@ -668,27 +753,34 @@ class KampusRezervasyonApp(ctk.CTk):
         self.karti = KullaniciKarti(sag, self.modul, self.kullanici_degisti)
         self.karti.pack(fill="x")
 
-        sekmeler = ctk.CTkTabview(
+        self.sekmeler = ctk.CTkTabview(
             sag, fg_color=RENK["panel"], corner_radius=14, segmented_button_fg_color=RENK["kart"],
             segmented_button_selected_color=RENK["vurgu"], segmented_button_selected_hover_color=RENK["vurgu_koyu"],
             segmented_button_unselected_color=RENK["kart"], segmented_button_unselected_hover_color=RENK["cizgi"],
         )
-        sekmeler.pack(fill="both", expand=True, pady=(12, 0))
-        for ad in ("Talep", "Rezervasyon", "+ Üye", "+ Kaynak"):
-            sekmeler.add(ad)
+        self.sekmeler.pack(fill="both", expand=True, pady=(12, 0))
+        for ad in ("Talep", "Rezervasyon", "Komutlar", "+ Üye", "+ Kaynak"):
+            self.sekmeler.add(ad)
 
         self.talep = TalepFormu(
-            sekmeler.tab("Talep"), self.modul, self.aktif_kullanici,
+            self.sekmeler.tab("Talep"), self.modul, self.aktif_kullanici,
             lambda: self.takvim.secilen_gun, self.takvim.gun_ata,
         )
         self.talep.pack(fill="both", expand=True, padx=6)
         self.rez_listesi = RezervasyonListesi(
-            sekmeler.tab("Rezervasyon"), self.modul, self.rezervasyon_secildi, self.aktif_kullanici
+            self.sekmeler.tab("Rezervasyon"), self.modul, self.rezervasyon_secildi, self.aktif_kullanici
         )
         self.rez_listesi.pack(fill="both", expand=True)
-        self.uye_formu = UyeEkleFormu(sekmeler.tab("+ Üye"), self.modul, self.karti.sec)
+
+        self.komut_paneli = KomutPaneli(
+            self.sekmeler.tab("Komutlar"), self.komut_adimi_calistir, self.tum_komutlari_calistir,
+            self._komut_dosyasi_sec, self.komutlari_sifirla,
+        )
+        self.komut_paneli.pack(fill="both", expand=True, padx=6)
+
+        self.uye_formu = UyeEkleFormu(self.sekmeler.tab("+ Üye"), self.modul, self.karti.sec)
         self.uye_formu.pack(fill="both", expand=True, padx=6)
-        self.kaynak_formu = KaynakEkleFormu(sekmeler.tab("+ Kaynak"), self.modul)
+        self.kaynak_formu = KaynakEkleFormu(self.sekmeler.tab("+ Kaynak"), self.modul)
         self.kaynak_formu.pack(fill="both", expand=True, padx=6)
 
     def aktif_kullanici(self):
@@ -718,6 +810,7 @@ class KampusRezervasyonApp(ctk.CTk):
         except Exception as e:
             messagebox.showerror("Hata", f"Başlangıç dosyası yüklenemedi:\n{e}")
             return
+        self.aktif_baslangic_yolu = yol
         self.lbl_dosya.configure(text=os.path.basename(yol))
         self.gunluk.temizle()
         self._gosterilen = 0
@@ -730,6 +823,96 @@ class KampusRezervasyonApp(ctk.CTk):
         self.uye_formu.yenile(ilk=True)
         self.kaynak_formu.yenile(ilk=True)
         self.guncelle()
+
+        # Otomatik komutlar.jsonl kontrolü
+        komut_aday = os.path.join(os.path.dirname(yol), "komutlar.jsonl")
+        if os.path.exists(komut_aday):
+            self.komut_dosyasi_yukle(komut_aday)
+        elif self.komut_dosyasi_yolu and os.path.exists(self.komut_dosyasi_yolu):
+            self.komut_dosyasi_yukle(self.komut_dosyasi_yolu)
+        else:
+            self._komut_arayuzunu_guncelle()
+
+    def _komut_dosyasi_sec(self):
+        yol = filedialog.askopenfilename(
+            title="Komutlar dosyası seç (.jsonl)",
+            filetypes=[("JSON Lines", "*.jsonl"), ("JSON", "*.json"), ("Tüm dosyalar", "*.*")]
+        )
+        if yol:
+            self.komut_dosyasi_yukle(yol)
+
+    def komut_dosyasi_yukle(self, yol):
+        try:
+            self.yuklu_komutlar = komutlar_okuma(yol)
+            self.komut_dosyasi_yolu = yol
+            self.komut_indeksi = 0
+            self._komut_arayuzunu_guncelle()
+            if hasattr(self, "sekmeler"):
+                self.sekmeler.set("Komutlar")
+        except Exception as e:
+            messagebox.showerror("Hata", f"Komut dosyası yüklenemedi:\n{e}")
+
+    def komut_adimi_calistir(self):
+        if not self.yuklu_komutlar or self.komut_indeksi >= len(self.yuklu_komutlar):
+            return
+        k = self.yuklu_komutlar[self.komut_indeksi]
+        if k.get("JSON_HATALI"):
+            self.modul._no += 1
+            kayit = {"no": self.modul._no, "komut": "JSON_HATALI", "durum": "RED", "kod": "JSON_HATALI"}
+            self.modul.gunluk.append({"girdi": k, "sonuc": kayit})
+            if self.modul.dinleyici:
+                self.modul.dinleyici()
+        else:
+            self.modul.komut(k)
+            kid = k.get("kullanici")
+            if kid and self.modul.kullanici(kid):
+                self.karti.sec(kid)
+            if k.get("komut") == "saat":
+                z = k.get("zaman", "")[:10]
+                if z:
+                    self.takvim.gun_ata(z)
+
+        self.komut_indeksi += 1
+        self._komut_arayuzunu_guncelle()
+
+    def tum_komutlari_calistir(self):
+        if not self.yuklu_komutlar:
+            return
+        while self.komut_indeksi < len(self.yuklu_komutlar):
+            k = self.yuklu_komutlar[self.komut_indeksi]
+            if k.get("JSON_HATALI"):
+                self.modul._no += 1
+                kayit = {"no": self.modul._no, "komut": "JSON_HATALI", "durum": "RED", "kod": "JSON_HATALI"}
+                self.modul.gunluk.append({"girdi": k, "sonuc": kayit})
+            else:
+                self.modul.komut(k)
+            self.komut_indeksi += 1
+        if self.modul.saat():
+            self.takvim.gun_ata(self.modul.saat().strftime("%Y-%m-%d"))
+        self.guncelle()
+        self._komut_arayuzunu_guncelle()
+
+    def komutlari_sifirla(self):
+        if self.aktif_baslangic_yolu:
+            self.dosya_yukle(self.aktif_baslangic_yolu)
+        else:
+            self.komut_indeksi = 0
+            self._komut_arayuzunu_guncelle()
+
+    def _komut_arayuzunu_guncelle(self):
+        toplam = len(self.yuklu_komutlar)
+        idx = self.komut_indeksi
+        siradaki = self.yuklu_komutlar[idx] if idx < toplam else None
+        dosya_adi = os.path.basename(self.komut_dosyasi_yolu) if self.komut_dosyasi_yolu else None
+
+        if hasattr(self, "lbl_komut_durum"):
+            self.lbl_komut_durum.configure(text=f"({idx}/{toplam})" if toplam > 0 else "")
+            self.btn_hizli_adim.configure(state="normal" if idx < toplam else "disabled")
+            self.btn_hizli_hepsi.configure(state="normal" if idx < toplam else "disabled")
+
+        if hasattr(self, "komut_paneli"):
+            self.komut_paneli.guncelle(dosya_adi, toplam, idx, siradaki)
+            self.komut_paneli.listeyi_yenile(self.yuklu_komutlar, idx)
 
     def saat_ilerlet(self, delta):
         saat = self.modul.saat()
@@ -749,13 +932,13 @@ class KampusRezervasyonApp(ctk.CTk):
             self.lbl_olay.configure(text=metin, text_color=RENK["uyari"] if olaylar else RENK["soluk"])
         else:
             kod = s.get("kod", "?")
-            self.lbl_olay.configure(text=f"✘ {kod} · {aciklama(kod)}", text_color=RENK["kotu"])
+            self.lbl_olay.configure(text=f"✘ {kod}", text_color=RENK["kotu"])
 
     def guncelle(self):
         saat = self.modul.saat()
         if saat:
             self.lbl_saat.configure(
-                text=f"{saat:%Y-%m-%d}  {GUN_ADLARI[saat.weekday()][:3]}  {saat:%H:%M}"
+                text=f"{saat:%Y-%m-%d}  {GUNLER[saat.weekday()][:3]}  {saat:%H:%M}"
             )
         self.karti.menu_yenile()
         kid = self.karti.aktif_id
