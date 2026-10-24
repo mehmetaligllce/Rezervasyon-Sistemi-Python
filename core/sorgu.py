@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from core.sistem import Sistem
 def sorgu_isle(Sistem:Sistem,komut:dict):
     

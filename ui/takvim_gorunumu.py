@@ -1,6 +1,5 @@
 import tkinter as tk
 from datetime import datetime, timedelta
-
 import customtkinter as ctk
 
 import core.sabitler as sbt

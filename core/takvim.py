@@ -1,4 +1,5 @@
 from datetime import timedelta,datetime
+
 from core.sistem import Sistem
 
 def takvim_verisi_uret(Sistem:Sistem,secilen_gun:datetime):

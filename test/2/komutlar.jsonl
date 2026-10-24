@@ -1,0 +1,17 @@
+{"komut":"rezervasyon","kullanici":"u1","kaynak":"YAZ-1","baslangic":"2027-03-08T08:00","bitis":"2027-03-08T08:30"}
+{"komut":"fiyat","kullanici":"u3","kaynak":"YAZ-1","baslangic":"2027-03-08T09:00","bitis":"2027-03-08T09:30"}
+{"komut":"rezervasyon","kullanici":"u3","kaynak":"YAZ-1","baslangic":"2027-03-08T09:00","bitis":"2027-03-08T09:30"}
+{"komut":"rezervasyon","kullanici":"u3","kaynak":"CIH-1","baslangic":"2027-03-08T09:00","bitis":"2027-03-08T11:00"}
+{"komut":"fiyat","kullanici":"u4","kaynak":"CIH-1","baslangic":"2027-03-08T11:15","bitis":"2027-03-08T12:15"}
+{"komut":"paket","kullanici":"u3","kalemler":[{"kaynak":"ODA-1","baslangic":"2027-03-08T14:00","bitis":"2027-03-08T15:00"}]}
+{"komut":"paket","kullanici":"u3","kalemler":[{"kaynak":"ODA-1","baslangic":"2027-03-08T14:00","bitis":"2027-03-08T15:00"},{"kaynak":"ODA-2","baslangic":"2027-03-08T14:00","bitis":"2027-03-08T15:00"},{"kaynak":"CIH-1","baslangic":"2027-03-08T14:00","bitis":"2027-03-08T15:00"},{"kaynak":"YAZ-1","baslangic":"2027-03-08T14:00","bitis":"2027-03-08T15:00"},{"kaynak":"ODA-1","baslangic":"2027-03-08T16:00","bitis":"2027-03-08T17:00"}]}
+{"komut":"paket","kullanici":"u2","kalemler":[{"kaynak":"ODA-1","baslangic":"2027-03-08T14:00","bitis":"2027-03-08T15:00"},{"kaynak":"ODA-2","baslangic":"2027-03-08T14:00","bitis":"2027-03-08T15:00"}]}
+{"komut":"paket","kullanici":"u3","kalemler":[{"kaynak":"ODA-1","baslangic":"2027-03-08T14:00","bitis":"2027-03-08T15:00"},{"kaynak":"CIH-1","baslangic":"2027-03-08T10:30","bitis":"2027-03-08T11:30"}]}
+{"komut":"paket","kullanici":"u3","kalemler":[{"kaynak":"ODA-1","baslangic":"2027-03-08T14:00","bitis":"2027-03-08T15:00"},{"kaynak":"ODA-1","baslangic":"2027-03-08T14:30","bitis":"2027-03-08T15:30"}]}
+{"komut":"paket","kullanici":"u4","kalemler":[{"kaynak":"CIH-1","baslangic":"2027-03-08T13:00","bitis":"2027-03-08T14:00"},{"kaynak":"ODA-1","baslangic":"2027-03-08T13:00","bitis":"2027-03-08T15:00"}]}
+{"komut":"paket","kullanici":"u3","kalemler":[{"kaynak":"ODA-1","baslangic":"2027-03-08T14:00","bitis":"2027-03-08T16:00"},{"kaynak":"ODA-2","baslangic":"2027-03-08T14:00","bitis":"2027-03-08T16:00"}]}
+{"komut":"iptal","rezervasyon":"r1"}
+{"komut":"rezervasyon","kullanici":"u1","kaynak":"ODA-1","baslangic":"2027-03-10T10:00","bitis":"2027-03-10T12:00"}
+{"komut":"iptal","rezervasyon":"r6"}
+{"komut":"sorgu","tur":"kullanici","id":"u1"}
+{"komut":"sorgu","tur":"kullanici","id":"u3"}

@@ -1,5 +1,4 @@
 from datetime import datetime
-
 import customtkinter as ctk
 
 import core.sabitler as sbt

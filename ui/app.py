@@ -10,6 +10,7 @@ import copy
 import customtkinter as ctk
 from datetime import datetime, timedelta
 from tkinter import filedialog, messagebox
+
 from core.sistem import Sistem
 from json_io.dosya_okuma import baslangic_veri_okuma, komutlar_okuma
 from core.dogrulama import rezervasyon_dogrula
@@ -705,7 +706,6 @@ class KampusRezervasyonApp(ctk.CTk):
         self.lbl_dosya = yazi(bar, "seçilmedi", wraplength=110)
         self.lbl_dosya.pack(side="left", padx=(4, 10))
 
-        # Komut dosyası yükleme ve hızlı adımlama butonları
         dugme(bar, "📜 Komutlar", self._komut_dosyasi_sec, width=110).pack(side="left")
         self.btn_hizli_adim = dugme(bar, "▶ Adım", self.komut_adimi_calistir, width=65, state="disabled")
         self.btn_hizli_adim.pack(side="left", padx=(4, 2))
@@ -824,7 +824,6 @@ class KampusRezervasyonApp(ctk.CTk):
         self.kaynak_formu.yenile(ilk=True)
         self.guncelle()
 
-        # Otomatik komutlar.jsonl kontrolü
         komut_aday = os.path.join(os.path.dirname(yol), "komutlar.jsonl")
         if os.path.exists(komut_aday):
             self.komut_dosyasi_yukle(komut_aday)
