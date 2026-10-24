@@ -54,8 +54,7 @@ def paket_isle(Sistem,komut:dict):
         sonuc=rezervasyon_dogrula(Sistem,kalem_talep,t_rez)
         if sonuc!="BASARILI":
             return {"durum":"RED","kod":"PAKET_ICI_KESISME","kalemler":sonuclar}
-        if k!=kalemler[-1]:
-            t_rez=t_rez+[{**k,"durum":"ONAYLI","kullanici":kullanici["id"]}]
+        t_rez.append({**k,"durum":"ONAYLI","kullanici":kullanici["id"]})
 
 
 

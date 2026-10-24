@@ -1,6 +1,7 @@
 import math
 from datetime import timedelta,datetime
 
+from core.bekleme import bekleme_tara
 import core.sabitler as sbt
 from core.sistem import Sistem
 
@@ -18,7 +19,7 @@ def rezervasyon_durum(Sistem:Sistem,komut:dict)->str:
         
         if baslangic - timedelta(minutes=sbt.ERKEN_GIRIS) <= Sistem.saat and Sistem.saat<=baslangic + timedelta(minutes=sbt.GEC_GIRIS):
             rezervasyon["durum"]="KULLANIMDA"
-            return {"durum":"TAMAM"}
+            return {"durum":"TAMAM","yeni_durum":"KULLANIMDA"}
         else:
             return {"durum":"RED","kod":"GIRIS_PENCERESI_DISI"}
 
@@ -32,7 +33,9 @@ def rezervasyon_durum(Sistem:Sistem,komut:dict)->str:
         if Sistem.saat<bitis:
             rezervasyon["bitis"]=Sistem.saat.isoformat()[:16]
         rezervasyon["durum"]="TAMAMLANDI"
-        return {"durum":"TAMAM","olaylar":[]}
+        olaylar=bekleme_tara(Sistem,rezervasyon["kaynak"],Sistem.saat)
+        kullanici = next(t for t in Sistem.baslangic_veri["kullanicilar"] if rezervasyon["kullanici"] == t["id"])
+        return {"durum":"TAMAM","yeni_durum":"TAMAMLANDI","guvenilirlik":kullanici["guvenilirlik"],"olaylar":olaylar}
 
 
     elif komut.get("komut") in ["iptal"]:
@@ -59,5 +62,7 @@ def rezervasyon_durum(Sistem:Sistem,komut:dict)->str:
         iade = min(iade,kota-kullanici["bakiye"])
         kullanici["bakiye"]+=iade
         rezervasyon["durum"]="IPTAL"
+        olaylar=bekleme_tara(Sistem,rezervasyon["kaynak"],Sistem.saat)
 
-        return {"durum": "TAMAM", "iade": iade, "bakiye": kullanici["bakiye"], "guvenilirlik": kullanici["guvenilirlik"], "olaylar": []}
+
+        return {"durum": "TAMAM", "iade": iade, "bakiye": kullanici["bakiye"], "guvenilirlik": kullanici["guvenilirlik"], "olaylar":olaylar}

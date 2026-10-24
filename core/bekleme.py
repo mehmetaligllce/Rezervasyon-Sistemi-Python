@@ -11,6 +11,8 @@ def siralama(Sistem:Sistem,b:dict):
 
 def bekleme_kaydet(Sistem:Sistem,komut:dict):
     b_id=f"b{Sistem.bekleme_sayac}"
+    Sistem.bekleme_listesi=[b for b in Sistem.bekleme_listesi if datetime.fromisoformat(b["baslangic"])>=Sistem.saat]
+    
 
     yeni={
         "id": b_id,

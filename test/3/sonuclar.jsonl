@@ -5,15 +5,15 @@
 {"no": 5, "komut": "saat", "durum": "TAMAM", "olaylar": []}
 {"no": 6, "komut": "giris", "durum": "RED", "kod": "GIRIS_PENCERESI_DISI"}
 {"no": 7, "komut": "saat", "durum": "TAMAM", "olaylar": []}
-{"no": 8, "komut": "giris", "durum": "TAMAM"}
+{"no": 8, "komut": "giris", "durum": "TAMAM", "yeni_durum": "KULLANIMDA"}
 {"no": 9, "komut": "saat", "durum": "TAMAM", "olaylar": []}
-{"no": 10, "komut": "cikis", "durum": "TAMAM", "olaylar": []}
+{"no": 10, "komut": "cikis", "durum": "TAMAM", "yeni_durum": "TAMAMLANDI", "guvenilirlik": 90, "olaylar": []}
 {"no": 11, "komut": "saat", "durum": "RED", "kod": "SAAT_GERI"}
 {"no": 12, "komut": "rezervasyon", "durum": "RED", "kod": "ARDISIK_KULLANIM"}
 {"no": 13, "komut": "saat", "durum": "TAMAM", "olaylar": []}
 {"no": 14, "komut": "giris", "durum": "RED", "kod": "BULUNAMADI"}
 {"no": 15, "komut": "saat", "durum": "TAMAM", "olaylar": [{"zaman": "2027-03-08T10:15", "tur": "GELMEDI", "rezervasyon": "r1", "kullanici": "u1", "guvenilirlik": 65}]}
-{"no": 16, "komut": "gecersiz_komut_testi", "durum": "TAMAM"}
+{"no": 16, "komut": "gecersiz_komut_testi", "durum": "RED", "kod": "JSON_HATALI"}
 {"no": 17, "durum": "RED", "kod": "JSON_HATALI"}
 {"no": 18, "komut": "sorgu", "durum": "TAMAM", "bakiye": 84, "guvenilirlik": 65, "rezervasyonlar": [{"id": "r1", "kaynak": "YAZ-1", "baslangic": "2027-03-08T10:00", "bitis": "2027-03-08T12:00", "durum": "GELMEDI", "ucret": 36}]}
 {"no": 19, "komut": "sorgu", "durum": "TAMAM", "bakiye": 116, "guvenilirlik": 90, "rezervasyonlar": [{"id": "r2", "kaynak": "ODA-1", "baslangic": "2027-03-08T09:00", "bitis": "2027-03-08T09:30", "durum": "TAMAMLANDI", "ucret": 4}]}

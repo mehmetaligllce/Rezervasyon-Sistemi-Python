@@ -30,9 +30,3 @@ def komutlar_okuma(yol:str)-> list:
 
 def sonuc_yaz(sonuc:dict):
     print(json.dumps(sonuc,ensure_ascii=False))
-
-
-
-
-    
-        

@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from tkinter import filedialog, messagebox
 
 from core.sistem import Sistem
+from core.komut_calistir import komut_calistir
 from json_io.dosya_okuma import baslangic_veri_okuma, komutlar_okuma
 from core.dogrulama import rezervasyon_dogrula
 from core.ucret_hesapla import ucret_hesapla
@@ -24,8 +25,8 @@ from core.ekle import kullanici_ekle, kaynak_ekle
 from ui.takvim_gorunumu import TakvimGorunumu, RENK, DURUM_RENKLERI, FONT, GUNLER
 from ui.talep_formu import TalepFormu, yazi, kutu, dugme, menu
 
-BASLANGIC_DOSYASI = "Örnek/baslangic.json"
-KOMUT_DOSYASI = "Örnek/komutlar.jsonl"
+BASLANGIC_DOSYASI = "ornek/baslangic.json"
+KOMUT_DOSYASI = "ornek/komutlar.jsonl"
 
 class Modul:
 
@@ -44,7 +45,10 @@ class Modul:
     def komut(self, komut, kaydet=True):
         if self.sistem is None:
             return {"durum": "RED", "kod": "BULUNAMADI"}
-        sonuc = self._komut_yurut(komut)
+        try:
+            sonuc = self._komut_yurut(komut)
+        except Exception:
+            sonuc = {"durum": "RED", "kod": "JSON_HATALI"}
         if not kaydet:
             return sonuc
         self._no += 1
@@ -56,78 +60,7 @@ class Modul:
         return kayit
 
     def _komut_yurut(self, k: dict) -> dict:
-        komut_turu = k.get("komut")
-
-        if komut_turu == "rezervasyon":
-            durum = rezervasyon_dogrula(self.sistem, k)
-            if durum != "BASARILI":
-                return {"durum": "RED", "kod": durum}
-            else:
-                ucret = ucret_hesapla(self.sistem, k)
-                kullanici = next(t for t in self.sistem.baslangic_veri["kullanicilar"] if t["id"] == k["kullanici"])
-                kullanici["bakiye"] -= ucret
-                r_id = f"r{len(self.sistem.rezervasyonlar) + 1}"
-                self.sistem.rezervasyonlar.append({
-                    "id": r_id,
-                    "kullanici": k["kullanici"],
-                    "kaynak": k["kaynak"],
-                    "baslangic": k["baslangic"],
-                    "bitis": k["bitis"],
-                    "ucret": ucret,
-                    "durum": "ONAYLI",
-                })
-                return {
-                    "durum": "TAMAM",
-                    "rezervasyon_id": r_id,
-                    "ucret": ucret,
-                    "bakiye": kullanici["bakiye"],
-                }
-
-        elif komut_turu == "fiyat":
-            durum = rezervasyon_dogrula(self.sistem, k)
-            if durum != "BASARILI":
-                return {"durum": "RED", "kod": durum}
-            else:
-                ucret = ucret_hesapla(self.sistem, k)
-                return {"durum": "TAMAM", "ucret": ucret}
-
-        elif komut_turu in ["giris", "cikis", "iptal"]:
-            return rezervasyon_durum(self.sistem, k)
-
-        elif komut_turu == "saat":
-            yeni_saat = datetime.fromisoformat(k["zaman"])
-            sonuc = saat_ilerlet(self.sistem, yeni_saat)
-            if sonuc.get("durum") == "TAMAM":
-                self.sistem.saat = yeni_saat
-            return sonuc
-
-        elif komut_turu == "sorgu":
-            return sorgu_isle(self.sistem, k)
-
-        elif komut_turu == "paket":
-            sonuc = paket_isle(self.sistem, k)
-            if sonuc.get("durum") == "TAMAM":
-                self.sistem.paket_sayac += 1
-            return sonuc
-
-        elif komut_turu == "bekleme":
-            durum = rezervasyon_dogrula(self.sistem, k)
-            if durum == "BASARILI":
-                return {"durum": "RED", "kod": "BEKLEME_GEREKSIZ"}
-            elif durum in ["KESISME", "HAZIRLIK_IHLALI"]:
-                self.sistem.bekleme_sayac += 1
-                return bekleme_kaydet(self.sistem, k)
-            else:
-                return {"durum": "RED", "kod": durum}
-
-        elif komut_turu == "kullanici_ekle":
-            return kullanici_ekle(self.sistem, k)
-
-        elif komut_turu == "kaynak_ekle":
-            return kaynak_ekle(self.sistem, k)
-
-        else:
-            return {"durum": "TAMAM"}
+        return komut_calistir(self.sistem,k)
 
     def saat(self):
         return self.sistem.saat if self.sistem else None
